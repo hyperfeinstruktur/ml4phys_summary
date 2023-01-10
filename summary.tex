@@ -450,58 +450,58 @@ since the prior is normalized to 1. The discrete form of the above is
     =
     \sum_{\theta} P(\theta | X)\theta.
 \end{equation}
-If we have an analytical expression for the posterior, we could imagine calculating it for every possible value of $\theta$. However, this is unfeasible in most practical cases, where $\theta$ is not a scalar. The above then becomes
+When, instead of a scalar parameter $\theta$ one has a set of parameters or latent variables\footnote{A \emph{latent variable} is similar to a parameter in that it is a variable that cannot be observed but only infered from the data. An example is the vector $S$ in the spin glass card game used in the lecture. While $S$ is used as notation in Eq. (\ref{eq:mmse_theta}) and the following, the same ideas apply if one has a vector of parameters and not latent variables.} $S \in \mathbb{R}^N$, the above becomes
 \begin{equation}
-    \hat{\theta_j}
+    \hat{S_j}
     =
-    %\sum_{\{\theta_i\}_{i=1}^N} P(\theta | X)\theta_j,
-    \sum_{\theta \in \Theta} P(\theta | X)\theta_j,
+    %\sum_{\{S_i\}_{i=1}^N} P(S | X)S_j,
+    \sum_{S \in \mathcal{S}} P(S | X)S_j,
     \label{eq:mmse_theta}
 \end{equation}
-and the sum now runs over the space $\Theta$ of all \emph{configurations} of $\theta$, and $\theta_j$ in the sum is the $j$-th entry of $\theta$ in the current configuration. In the example of the spin glass game discussed in the lecture, $\theta$ is a vector of length $N$ where each entry can take 2 values. Summing over all its configurations would amount to considering $2^N$ configurations, which is unfeasible already if $N=100$. This means that another approach is required for calculating these sums/integrals.
+and the sum now runs over the space $\mathcal{S}$ of all \emph{configurations} of $S$, and $S_j$ in the sum is the $j$-th entry of $S$ in the current configuration. If we have an analytic expression for the posterior $P(S|X)$, one could imagine computing Eq. (\ref{eq:mmse_theta}) directly by computing it for every $S\in\mathcal{S}$, but this is generally unfeasible. In the example of the spin glass game discussed in the lecture, $S$ is a vector of length $N$ where each entry can take 2 values. Summing over all its configurations would amount to considering $2^N$ configurations, which is unfeasible already if $N=100$. This means that another approach is required for calculating these sums/integrals.
 
 \subsection{Monte-Carlo Methods}
-The main idea of \emph{Monte-Carlo integration} is to use random sampling to approximate an analytical expression. In the case at hand, the expression we wish to compute is a sum of values weighted by a probability. If we had a way of drawing samples of $\theta$ that follow its posterior distribution, we could then imagine approximating the sum by summing a large enough number $T$ of samples. This would put more weight on the configurations of $\theta$ for which the posterior is larger, just like in the original sum in Eq. (\ref{eq:mmse_theta}):
+The main idea of \emph{Monte-Carlo integration} is to use random sampling to approximate an analytical expression. In the case at hand, the expression we wish to compute is a sum of values weighted by a probability. If we had a way of drawing samples of $S$ that follow its posterior distribution, we could then imagine approximating the sum by summing a large enough number $T$ of samples. This would put more weight on the configurations of $S$ for which the posterior is larger, just like in the original sum in Eq. (\ref{eq:mmse_theta}):
 \begin{equation}
-    \hat{\theta_j}
+    \hat{S_j}
     \approx
     \frac{1}{T}
-    \sum_{t=1}^{N} \theta_j^{(t)}
+    \sum_{t=1}^{N} S_j^{(t)}
     =
-    \langle \theta_j \rangle_t,
+    \langle S_j \rangle_t,
 \end{equation}
-where $\theta_j^{(t)}$ is the $t$-th sample drawn from $P(\theta | X)$. This is closely related to the ergodic hypothesis of statistical physics, where an equivalence between ensemble average and time average is postulated, with random sampling taking the role of time evolution. This means that, if we have a practical way of generating samples of a known probability distribution, the problem of computing sums like Eq. (\ref{eq:mmse_theta}) becomes manageable. This is what \emph{Markov Chain Monte Carlo} (MCMC) methods do.
+where $S_j^{(t)}$ is the $t$-th sample drawn from $P(S | X)$. This is closely related to the ergodic hypothesis of statistical physics, where an equivalence between ensemble average and time average is postulated, with random sampling taking the role of time evolution. This means that, if we have a practical way of generating samples of a known probability distribution, the problem of computing sums like Eq. (\ref{eq:mmse_theta}) becomes manageable. This is what \emph{Markov Chain Monte Carlo} (MCMC) methods do.
 \subsubsection*{Markov Chain Monte-Carlo (MCMC) Methods}
-A \emph{Markov Chain} is a sequence of random variables $\{\theta^{(t)}\}_{t=1}^T$ such that for any $t$, the probability distribution of the next state $\theta^{(t+1)}$ depends only on the current state $\theta^{(t)}$. Formally,
+A \emph{Markov Chain} is a sequence of random variables $\{S^{(t)}\}_{t=1}^T$ such that for any $t$, the probability distribution of the next state $S^{(t+1)}$ depends only on the current state $S^{(t)}$. Formally,
 \begin{equation}
-    P(\theta^{(t+1)} | \theta^{(t)}, \theta^{(t-1)}, \dots,\theta^{(0)})
+    P(S^{(t+1)} | S^{(t)}, S^{(t-1)}, \dots,S^{(0)})
     =
-    P(\theta^{(t+1)} | \theta^{(t)}).
+    P(S^{(t+1)} | S^{(t)}).
 \end{equation}
 One defines a transition probability $w(x\rightarrow y)$,
 \begin{equation}
-    w(x\rightarrow y) \equiv P(\theta^{(t+1)} =y\ |\ \theta^{(t)}=x),
+    w(x\rightarrow y) \equiv P(S^{(t+1)} =y\ |\ S^{(t)}=x),
 \end{equation}
 and the joint distribution of the entire sequence is given by
 \begin{equation}
-    P\left(\{\theta^{(t)}\}_{t=1}^T\right)
+    P\left(\{S^{(t)}\}_{t=1}^T\right)
     =
-    P(\theta^{(0)}) \prod_{t=0}^{T}
-    w(\theta^{(t)}\rightarrow \theta^{(t+1)}).
+    P(S^{(0)}) \prod_{t=0}^{T}
+    w(S^{(t)}\rightarrow S^{(t+1)}).
 \end{equation}
-One can then write down a recursive relation for $P^{(t)}(\theta)$:
+One can then write down a recursive relation for $P^{(t)}(S)$:
 \begin{equation}
-    P^{(t+1)}(\theta)
+    P^{(t+1)}(S)
     =
-    \sum_{\theta' \in \Theta} w(\theta'\rightarrow \theta) P^{(t)}(\theta').
+    \sum_{S' \in \Theta} w(S'\rightarrow S) P^{(t)}(S').
 \end{equation}
 Under certain conditions, the Markov chain has an \emph{equilibrium distribution} $\tilde{P}$ for $t\rightarrow\infty$ that satisfies
 \begin{equation}
-    \tilde{P}(\theta)
+    \tilde{P}(S)
     =
-    \sum_{\theta' \in \Theta} w(\theta'\rightarrow \theta) \tilde{P}(\theta').
+    \sum_{S' \in \Theta} w(S'\rightarrow S) \tilde{P}(S').
 \end{equation}
-The idea of a MCMC method is to construct a Markov chain such that its equilibrium distribution is the distribution one wants to sample. In practice, one initializes the algorithm to some (often random) configuration $\theta^{(0)}$ and then evolves the chain. After a \emph{burn-in} or \emph{thermalization} time $T^{\star}$, one assumes the chain to have reached its equilibrium distribution and starts collecting the values $\theta^{(t>T^{\star})}$ as samples of the desired distribution.
+The idea of a MCMC method is to construct a Markov chain such that its equilibrium distribution is the distribution one wants to sample. In practice, one initializes the algorithm to some (often random) configuration $S^{(0)}$ and then evolves the chain. After a \emph{burn-in} or \emph{thermalization} time $T^{\star}$, one assumes the chain to have reached its equilibrium distribution and starts collecting the values $S^{(t>T^{\star})}$ as samples of the desired distribution.
 \subsubsection*{The Metropolis-Hastings Algorithm}
 The MH algorithm is a concrete example of a MCMC method. \dots
 \subsubsection*{Gibbs Sampling}
@@ -510,7 +510,7 @@ Another common MCMC method is the so-called Gibbs sampler. \dots
 \subsection{Applications of MCMC}
 The computation of posterior means (Eq. \ref{eq:mmse_theta}) to obtain Bayes estimators is only one among the many uses of MCMC methods. In general, being able to generate samples from any probability distribution efficiently is useful for a wide range of applications.
 \subsubsection*{Inference and Optimization}
-The MAP estimator introduced in the beginning involves maximizing some known probability distribution. This can be done efficiently, as we saw, using GD or its variants. However, these methods tend to get "stuck" near local maxima and also cannot give an accurate picture of the degeneracy between different parameters, i.e. how different combinations of the parameters can give rise to an equivalently high posterior. This is necessary when one wants to give confidence intervals of parameters which include the covariances between them, typically visualized by a so-called corner plot. To use an MCMC method for this task, consider again a chain of samples $\{\theta^{(t)}\}_{t=1}^T$ drawn from $P(\theta | X)$. By construction, the chain will "spend more time" close to maxima of $P(\theta | X)$, or equivalently contain more samples of $\theta$ close to them. By appropriately processing the whole set of samples, these maxima, along with correlated confidence intervals, can be found.
+The MAP estimator introduced in the beginning involves maximizing some known probability distribution. This can be done efficiently, as we saw, using GD or its variants. However, these methods tend to get "stuck" near local maxima and also cannot give an accurate picture of the degeneracy between different parameters, i.e. how different combinations of the parameters can give rise to an equivalently high posterior. This is necessary when one wants to give confidence intervals of parameters which include the covariances between them, typically visualized by a so-called corner plot. To use an MCMC method for this task, consider again a chain of samples $\{S^{(t)}\}_{t=1}^T$ drawn from $P(S | X)$. By construction, the chain will "spend more time" close to maxima of $P(S | X)$, or equivalently contain more samples of $S$ close to them. By appropriately processing the whole set of samples, these maxima, along with correlated confidence intervals, can be found.
 \subsubsection*{Simulated Annealing}
 A slightly different task is finding minima/maxima when the considered distribution has a hyperparameter that changes its shape. Consider for example a Boltzmann distribution from statistical physics,
 \begin{equation}
@@ -518,7 +518,25 @@ A slightly different task is finding minima/maxima when the considered distribut
 \end{equation}
 where $Z$ is the partition function (which acts as a normalization), $T$ is the temperature, $H$ the hamiltonian and $S$ a vector characterizing the state of the system (e.g. a vector of Ising spins). One might want to find the ground states of this system (i.e. those that maximize $P(S)$) when the temperature is very low, $T\rightarrow 0$. If one simply sets $T$ close to 0, initializes $S$ at random and starts sampling $P$ to find its maximum, the chain will tend to converge very slowly. A better method, known as \emph{annealing}, is to start the chain at high temperature and decrease it at every step of the MCMC algorithm. This way, the system is simulated while cooling down gradually, and it becomes easier to find the ground state.
 \subsubsection*{Expectation-Maximization (ME) Algorithm}
-Suppose now that the statistical model additionally depends on some unknown hyperparameter $\rho$. 
+Suppose now that the statistical model depends both on a set of latent variables $S$ and on an unknown \emph{parameter} $\rho$. In order to infer $\rho$ from the data $X$ and the latent variables $S$, a special algorithm is needed, read \href{https://en.wikipedia.org/wiki/Expectation-maximization_algorithm#Introduction}{this Wikipedia paragraph} for a nice explanation as to why. The idea is that, using the law of total probability, one can write
+\begin{equation}
+    P(\rho | X)
+    =
+    \frac{P(X|\rho) P(\rho)}{P(X)}
+    =
+    \frac{P(\rho)}{P(X)}
+    \sum_{S\in\mathcal{S}} P(X,S|\rho)
+    =
+    \frac{P(\rho)}{P(X)}
+    \sum_{S\in\mathcal{S}} P(X|S,\rho) P(S|\rho),
+\end{equation}
+and consider the term
+$$Z(\rho) \equiv \sum_{S\in\mathcal{S}} P(X|S,\rho) P(S|\rho)$$
+as a "likelihood". However, the term $P(X|S,\rho)$ depends on $\rho$, the parameter we wish to infer! The ME algorithm is then defined as the following procedure:
+\begin{enumerate}
+    \item Initialize $\rho$ at random.
+    \item Compute $P(X|S,\rho)$ for this value
+\end{enumerate}
 \subsection{Clustering}
 \end{document}
 
@@ -538,7 +556,14 @@ Suppose now that the statistical model additionally depends on some unknown hype
 
 
 % ################################################################
-
+The MLE of $\rho$ is then
+\begin{eqnarray}
+    \hat{\rho}_{\text{ML}}
+    =
+    \underset{\rho}{\text{argmax}}
+    \sum_{S\in\mathcal{S}} P(X|S,\rho) P(S|\rho).
+\end{eqnarray}
+As we see, computing this quantity again involves a sum over the configurations $S \in \mathcal{S}$.
 
 \noindent\textbf{\underline{Theorem:} Young-Eckhart-Mirsky}
 
