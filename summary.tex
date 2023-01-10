@@ -1,0 +1,598 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+%\usepackage{bbold}
+\usepackage{MnSymbol}
+\usepackage{graphicx}
+\usepackage{svg}
+\usepackage{hyperref}
+\usepackage{comment}
+\usepackage{geometry}
+\usepackage{subcaption}
+\geometry{top=1in,bottom=1in,left=1in,right=1in}
+
+
+\title{PHYS-467: Machine Learning for Physicists\\\Large Lecture Summary}
+\author{Patrick Hirling}
+\date{\today}
+
+\begin{document}
+\newgeometry{top=1in,bottom=1in,left=1in,right=1in}
+\maketitle
+\section{Bayesian Inference, Linear Models and Supervised Learning}
+The idea of inference is to \emph{infer} the values of a set of parameters $\theta$\dots
+Some basic concepts:
+\begin{itemize}
+    \item Conditional probability:
+        \begin{equation}
+            P(A|B) = \frac{P(A \cap B)}{P(B)}
+        \end{equation}
+    \item Bayes' Rule:
+        \begin{equation}
+            P(A|B) = \frac{P(B|A) P(A)}{P(B)}
+        \end{equation}
+\end{itemize}
+In the case of inference, the typical problem is to estimate a set of parameters $\theta$ given some data $X$. Bayes' rule then reads
+\begin{equation}
+    P(\theta|X) = \frac{P(X|\theta) P(\theta)}{P(X)}.
+\end{equation}
+The elements of this formula are called
+\begin{itemize}
+    \item $P(\theta|X)$: The \emph{posterior distribution}
+    \item $P(X|\theta)$: The \emph{likelihood}. This is often where one "chooses a model", by assuming that the data follows a certain probability distribution (gaussian, poissonian, exponential,...) of which $\theta$ are parameters (e.g. the mean, variance,...).
+    \item $P(\theta)$: The \emph{prior distribution}. This is the information one has about the parameters before the experiment and typically doesn't have an obvious form.
+    \item $P(X)$: The \emph{evidence}. This is independent of $\theta$ and thus acts as a normalization constant for the posterior. 
+\end{itemize}
+The two most common \emph{estimatorss} for $\theta$ are:
+\begin{enumerate}
+    \item \textbf{Maximum Likelihood Estimator (MLE)}:
+        \begin{equation*}
+            \hat{\theta}_{\text{ML}}
+            =
+            \underset{\theta}{\text{argmax}} \left[ P(X|\theta) \right]
+        \end{equation*}
+    \item \textbf{Maximum A Posteriori Estimator (MAP)}:
+        \begin{equation*}
+            \hat{\theta}_{\text{MAP}}
+            =
+            \underset{\theta}{\text{argmax}} \left[ P(\theta|X) \right]
+        \end{equation*}
+\end{enumerate}
+The former (MLE) can be seen as a special case of MAP when the prior is a uniform distribution (i.e. $P(\theta) = const.$). In practice, one can in certain cases assume that with a lot of data, the posterior is dominated by the likelihood, making this a valid assumption.
+\restoregeometry
+\noindent Often, one is interested in situations where there are multiple conditions. For example, suppose that in addition to $\theta$ that we wish to learn, there is additional information $y$ that is known. Then, using the definition of conditional probability multiple times,
+\begin{equation}
+    P(\theta | X,y) = \frac{P(\theta,X,y)}{P(X,y)}
+    =
+    \frac{P(y|w,X)P(w,X)}{P(y|X)P(X)}
+    =
+    \frac{P(y|w,X)P(w|X)P(X)}{P(y|X)P(X)}
+    =
+    \frac{P(y|w,X)P(w|X)}{P(y|X)}.
+    \label{eq:posterior}
+\end{equation}
+The elements of this formula inherit the names given above: $P(\theta | X,y)$ is the posterior, $P(y|w,X)$ the likelihood, $P(w|X)$ the prior and $P(y|X)$ the evidence. The estimators translate naturally to this context.
+\subsection{Linear Models}
+In the context of supervised machine learning, the following nomenclature will be used:
+The \textbf{data} is represented by a matrix $X_{\mu i} \in \mathbb{R}^{n \times d}$ where $\mu = 1,\dots,n$ indexes the \textbf{sample} and $i = 1,\dots,d$ indexes the \textbf{feature}. To each data sample corresponds a \textbf{label} $y_{\mu} \in \mathbb{R}^n$. A \textbf{model} parametrized by a set of \textbf{weights} $w_i \in \mathbb{R}^d$ establishes a relationship between the data and the labels. Implicitely, one assumes that there is a set of \textbf{ground truth} weights $w_i^{\star}$ that represent the "true" values. The full \textbf{dataset} is in general split into a \textbf{training set}, which is used as the name suggests to train the model using the methods described in what follows, the \textbf{validation set}, used to fix so-called \textbf{hyperparameters} of the model, and a \textbf{test set}, used at the very end to evaluate the performance of the model on completely fresh data. The metrics used to evaluate performance are called \textbf{errors} or \textbf{losses} depending on the context and can take different forms depending on the system that is considered.
+
+A \emph{generalized linear model} (GLM) assumes that the labels are generated from the data through some probability distribution parametrized by the ground truth weights:
+\begin{equation}
+    y_{\mu} \sim P_{out} (y_{\mu} | X_{\mu i} w^{\star}_i),
+\end{equation}
+where summation over repeated indices is implied from now on. Assuming that the weights are i.i.d. and independent of the data, one can then write for the posterior
+\begin{equation}
+    P(w | X,y)
+    =
+    \frac{P(y | w,X) P(w|X)}{P(y|X)}
+    \sim
+    \prod_{\mu = 1}^{n} P_{out} (y_{\mu} | X_{\mu i} w^{\star}_i)
+    \prod_{j = 1}^{d} P(w_j),
+    \label{eq:linearposterior}
+\end{equation}
+where terms independent of $w$ are treated as constants in the last step. One then defines the \emph{per-sample loss} and the \emph{regularization}:
+\begin{align}
+    l(y_{\mu}, X_{\mu i} w^{\star}_i)
+    &\equiv
+    - \ln \left[P_{out} (y_{\mu} | X_{\mu i} w^{\star}_i)\right]\\
+    r(w_i) &\equiv
+    - \ln \left[P(w_i) \right]
+\end{align}
+which together enter into the \emph{loss function}, defined as the negative logarithm of the posterior:
+
+\begin{equation}
+    \boxed{
+        \mathcal{L}(w)
+        \equiv
+        - \ln \left[P(w | X,y)\right]
+        =
+        \frac{1}{n}\sum_{\mu = 1}^{n} l(y_{\mu}, X_{\mu i} w^{\star}_i)
+        +
+        \lambda \sum_{i=1}^{d} r(w_i).
+    }
+\end{equation}
+Different conventions exist for the $1/n$ factor. The hyperparameter $\lambda$ parametrizes the strength of the regularization term. The two estimators defined previously then read
+\begin{align}
+    \hat{w}_{\text{MAP}} &= \underset{w}{\text{argmin }} \mathcal{L}(w) \\
+    \hat{w}_{\text{ML}} &= \underset{w}{\text{argmin }} \frac{1}{n}\sum_{\mu = 1}^{n} l(y_{\mu}, X_{\mu i} w^{\star}_i),
+\end{align}
+i.e. the MLE is simply the MAP without regularization. The following are some of the most common concrete models.
+\subsubsection*{Ridge Regression}
+Ridge regression assumes that both the likelihood and the prior are gaussian,
+\begin{align}
+    P_{out} (y_{\mu} | X_{\mu i} w^{\star}_i)
+    &=
+    \frac{1}{\sqrt{2\pi}\Delta}e^{-\frac{1}{2\Delta^2} (y_{\mu} - X_{\mu} \cdot w)^2}
+    \iff \left(y_{\mu} | X_{\mu i} w^{\star}_i\right) \sim \mathcal{N}(X_{\mu}\cdot w,\Delta^2) \\
+    P(w_i) &=
+    \frac{1}{\sqrt{2\pi}\sigma}e^{-\frac{1}{2\sigma^2}w_i^2}
+    \iff w_i \sim \mathcal{N}(0,\sigma^2),
+\end{align}
+which leads to the one-sample loss
+\begin{equation}
+    l(y_{\mu}, X_{\mu i} w^{\star}_i)
+    =
+    (y_{\mu} - X_{\mu} \cdot w)^2,
+\end{equation}
+called the \emph{least-squares loss}. Similarly, for the regularization,
+\begin{equation}
+    r(w_i)
+    =
+    w_i^2,
+\end{equation}
+called \emph{$L_2$-regularization}. The full loss is
+\begin{equation}
+    \mathcal{L}_{\text{Ridge}}(w)
+    =
+    \frac{1}{n}\sum_{\mu = 1}^{n} (y_{\mu} - X_{\mu} \cdot w)^2
+    +
+    \lambda \sum_{i=1}^{d} w_i^2.
+\end{equation}
+\underline{Alternative Derivation}
+
+\noindent Without the GLM framework, one typically arrives at the ridge or least squares regression model by the following argument: Assume that the labels $y$ can be described by a linear relationship between the data and a set of ground-truth weights and an additive gaussian noise,
+\begin{equation}
+    y_{\mu} = X_{\mu i} w_i^{\star} + \xi_{\mu},
+    \quad \quad
+    \xi_{\mu} \sim \mathcal{N}(0,\Delta^2).
+\end{equation}
+This means that $y_{\mu} \sim \mathcal{N}(y_{\mu}-X_{\mu i} w^{\star}_i,\Delta^2)$, and so the likelihood for a given set of weights $w$ and data $X$ is
+\begin{equation}
+    P(y|w,X)
+    =
+    \prod_{\mu=1}^{n}
+    \frac{1}{\sqrt{2\pi}\Delta}e^{-\frac{1}{2\Delta^2} (y_{\mu} - X_{\mu} \cdot w)^2}
+\end{equation}
+If one further assumes that the ground-truth weights are also i.i.d normally distributed and are independent of the data, $w_i^{\star} \sim \mathcal{N}(0,\sigma^2)$, the prior is
+\begin{equation}
+    P(w|X)
+    =
+    \prod_{i=1}^{d}
+    \frac{1}{\sqrt{2\pi}\sigma}e^{-\frac{1}{2\sigma^2}w_i^2}
+\end{equation}
+The posterior is then (Eq. \ref{eq:posterior}),
+\begin{equation}
+    P(w | X,y)
+    =
+    \frac{P(y | w,X) P(w|X)}{P(y|X)}
+    \sim
+    \prod_{\mu=1}^{n}
+    \frac{1}{\sqrt{2\pi}\Delta}e^{-\frac{1}{2\Delta^2} (y_{\mu} - X_{\mu} \cdot w)^2}
+    \prod_{i=1}^{d}
+    \frac{1}{\sqrt{2\pi}\sigma}e^{-\frac{1}{2\sigma^2}w_i^2},
+\end{equation}
+which is the same as Eq. (\ref{eq:linearposterior}), and so the estimators yield the ordinary least-squares and $L_2$-regularized least squares estimators.
+\subsubsection*{Robust Regression}
+In this model, the Gaussian likelihood from before is replaced by a Laplacian one,
+\begin{equation}
+    P_{out} (y_{\mu} | X_{\mu i} w^{\star}_i)
+    =
+    \frac{\gamma}{2}e^{-\gamma |y_{\mu} - X_{\mu} \cdot w|},
+\end{equation}
+yielding the so-called \emph{Mean Absolute Error loss} (MAE):
+\begin{equation}
+    l(y_{\mu}, X_{\mu i} w^{\star}_i)
+    =
+    \gamma|y_{\mu} - X_{\mu} \cdot w|.
+\end{equation}
+A model using such a loss function is called robust because it is less sensitive to outliers in the data, as it is not quadratic.
+\subsubsection*{Sparse Regression}
+This time, the gaussian prior is replaced by a laplacian one,
+\begin{equation}
+    P(w_i)
+    =
+    \frac{\lambda}{2}e^{-\lambda |w_i|},
+\end{equation}
+which yields the LASSO-regularization,
+\begin{equation}
+    r(w_i) = |w_i|.
+\end{equation}
+The name comes from the fact that the full loss of least-squares with this regularization,
+\begin{equation}
+    \mathcal{L}_{\text{LASSO}}(w)
+    \equiv
+    \frac{1}{n}\sum_{\mu = 1}^{n} (y_{\mu} - X_{\mu} \cdot w)^2
+    +
+    \lambda \sum_{i=1}^{d} |w_i|,
+\end{equation}
+is called the \emph{Least Absolute Shrinkage and Selection Operator}. See figure 8 of the lecture notes for a visual intuition of what this regularization does. The main idea is that such a regularization induces sparsity in the weights, meaning that it tends to yield a set of weights $w$ where many $w_i=0$ and only a "few" are nonzero. In an inference context, this means that one can find out which features are the most "important" (variable selection). In a signal processing context (where $y$ is the measured signal, $X$ the source signal and $\xi$ the noise), it can be seen as a form of compression.
+
+\subsection{Gradient Descent}
+All the models introduced above boil down the problem of inference to the same task: minimizing a certain loss function $\mathcal{L}$. In the case of ridge regression, an analytical minimum exists and is given by
+\begin{align}
+    \hat{w}_{R} &=(X^TX)^{-1}X^Ty \quad\quad\text{(MLE)} \\
+    \hat{w}_{R} &=(X^TX + \frac{\Delta^2}{\sigma^2}\mathbf{1})^{-1}X^Ty \quad\quad\text{(MAP)}.
+\end{align}
+Note that in the first case it is assumed that the \emph{covariance matrix} $X^TX$ is invertible, which is typically the case when $d\ll n$.
+However, for more general loss functions, such as the ones that arise in nonlinear models like neural networks, another minimization technique is required. This is provided by the \emph{Gradient Descent} (GD) method. It is an universal iterative method that is initialized at some $w^0$ and then performs steps in the direction of the inverse gradient at that point, weighted by a hyperparameter called the \emph{learning rate} $\gamma$:
+\begin{equation}
+    w_i^{t+1} = w_i^{t} - \gamma\frac{\partial\mathcal{L}(w)}{\partial w_i}\bigg |_{w=w^t}.
+\end{equation}
+Formally, this means taylor-expanding the loss to second order, setting $\partial\mathcal{L}/\partial w = 0$. and approximating the second derivative by the constant $1/\gamma$. Visually, it means taking steps in the direction of the minimum of a parabola tangent to $\mathcal{L}$ at $w^t$ scaled by $\gamma$. It turns out that this method, although seemingly very approximate, is very effective when choosing a good learning rate.
+
+Standard gradient descent has the disadvantages of 1. being computationally very expensive on large datasets, as the derivative of the loss involves a sum over all samples and 2. that it easily gets stuck in local minima of the loss. To mitigate these issues, variants of GD exist and are more commonly used in practice.
+\subsubsection*{Stochastic Gradient Descent}
+Rather than computing the gradient of the loss function over the whole dataset,
+\begin{equation}
+    \frac{\partial\mathcal{L}(w)}{\partial w_i}
+    =
+    \frac{1}{n}\sum_{\mu = 1}^{n} \frac{\partial l(y_{\mu}, X_{\mu i} w^{\star}_i)}{\partial w_i}
+    +
+    \lambda \sum_{i=1}^{d} \frac{\partial r(w_i)}{\partial w_i},
+\end{equation}
+which involves summing over all samples $\mu$ ($n$ is typically on the order $>10^3$), \emph{Stochastic Gradient Descent} (SGD) approximates the gradient by considering, at every iteration, only a random subset $B_t$ (a "batch") of the samples. Concretely,
+\begin{equation}
+    \frac{\partial\mathcal{L}(w)}{\partial w_i}
+    \approx
+    \frac{1}{|B_t|}\sum_{\mu \in B_t}^{n} \frac{\partial l(y_{\mu}, X_{\mu i} w^{\star}_i)}{\partial w_i}
+    +
+    \lambda \sum_{i=1}^{d} \frac{\partial r(w_i)}{\partial w_i}.
+\end{equation}
+
+\subsubsection*{Subgradient Descent}
+This variant is typically used when using LASSO-regularizations, since their derivative yields a sign function of the weights that is undefined when they are 0. It works like GD but chooses a random value for $\partial r/\partial w_i$ when it doesn't exist.
+\subsubsection*{Momentum Methods}
+The idea here is to introduce "momentum" to the process, in the sense of keeping a memory of the previous iteration $w^{t-1}$ and take it into account when computing $w^{t+1}$. A common example of this is \emph{Adaptive Moment Estimation} (ADAM). See \href{https://en.wikipedia.org/wiki/Stochastic_gradient_descent#Momentum}{this link} for a more in-depth description.
+\subsection{Features and the Bias-Variance Tradeoff}
+So far a given data sample $X_{\mu}\in\mathbb{R}^d$ has simply been described as having $d$ features. These features may be concrete things like age, height, weight, etc., but could in principle also be functions of those values, as will be discussed later in the context of kernel methods and neural networks. In the context of the methods described above, a simple extension is \emph{polynomial regression}, where one adds features by considering powers of a "ground feature" $x$. The data matrix is then
+\begin{equation}
+    X =
+    \begin{pmatrix}
+        x_1^p & x_1^{p-1} & \dots & 1 \\
+        x_2^p & x_2^{p-1} & \dots & 1 \\
+        \vdots & \vdots & \ddots & \\
+        x_{\mu}^p & x_{\mu}^{p-1} & \dots & 1
+    \end{pmatrix}
+    \in \mathbb{R}^{n\times (p+1)}.
+\end{equation}
+As a simple example, this can be used to fit a polynomial function of degree $p$ to some data. As the degree $p$ increases, the model may fit the data more and more closely, but at some point $p$ becomes too high and the model starts to fit the noise rather than the actual behaviour of interest. At this point, the generalizability of the model decreases, i.e. it less accurately extrapolates to new data. When plotting the performance (an error of some kind, like the RMSE) of the model on the train and test data, the training error will get lower and lower but the test error reaches a minimum and then increases again. This relationship between model complexity and generalizability is called the \emph{bias-variance tradeoff} and arises in all machine learning contexts. As will be seen with neural networks, there is a caveat to this conclusion (the double-descent phenomenon). One defines the terms as (copied from Wikipedia):
+\begin{itemize}
+    \item \textbf{Bias}: The bias error is an error from erroneous assumptions in the learning algorithm. High bias can cause an algorithm to miss the relevant relations between features and target outputs (underfitting).
+    \item \textbf{Variance}: The variance is an error from sensitivity to small fluctuations in the training set. High variance may result from an algorithm modeling the random noise in the training data (overfitting).
+\end{itemize}
+\subsection{Linear Classification}
+\subsubsection*{Two Classes}
+The simplest case of linear classification 2-class classification. A set of points in a $p$-dimensional space are said to be \emph{linearly separable} if there exists at least one hyperplane $\pi \in \mathbb{R}^{p-1}$ that separates the points into two disjunct sets. The hyperplane may be parametrized by a vector $w^{\star} = (w_1^{\star} , w_2^{\star} , \dots , w_p^{\star}, b) \in \mathbb{R}^{p+1}$ and
+\begin{equation}
+    z = (z_1 , z_2 , \dots , z_p)
+    \in \pi \iff \tilde{X}_i w_i = 0, \text{ where }
+    \tilde{X} = (z,1).
+\end{equation}
+Considering now a set of $n$ datapoints $X_{\mu i} \in \mathbb{R}^{n \times d}$,
+\begin{equation}
+    X =
+    \begin{pmatrix}
+        x_{1 1} & x_{1 2} & \dots & x_{1 p} & 1 \\
+        x_{2 1} & x_{2 2} & \dots & x_{2 p} & 1 \\
+        \vdots & \vdots & \ddots & \\
+        x_{\mu 1} & x_{\mu 2} & \dots & x_{\mu p} & 1
+    \end{pmatrix}
+    \in \mathbb{R}^{n\times d} \quad \quad (d=p+1),
+\end{equation}
+one can consider labels $y_{\mu}\in \mathbb{R}^{d}$ that are $\pm 1$ depending on the side of the hyperplane the corresponding data point is:
+\begin{align*}
+    X_{\mu i} w_i > 0 \iff y_{\mu} &= +1 \\
+    X_{\mu i} w_i < 0 \iff y_{\mu} &= -1,
+\end{align*}
+or simply $y_{\mu} = \text{sign}(X_{\mu i} w_i)$. The problem of linear classification then reduces to a regression problem of minimizing some loss $\mathcal{L}(w)$. One first needs to define a probabilistic model. A common one\footnote{See \url{https://en.wikipedia.org/wiki/Logistic_regression\#Definition} for more details} is
+\begin{equation}
+    P_{out} (y_{\mu} | X_{\mu i} w^{\star}_i)
+    =
+    \frac{e^{y_{\mu} X_{\mu i} w^{\star}_i}}{e^{X_{\mu i} w^{\star}_i} + e^{-X_{\mu i} w^{\star}_i}}
+    \quad\quad \text{(No summation over $\mu$)},
+    \label{eq:logisticlikelihood}
+\end{equation}
+which yields the one-sample loss
+\begin{equation}
+    l_{logit}(y_{\mu}, X_{\mu i} w^{\star}_i)
+    =
+    \ln\left(1+e^{-y_{\mu} X_{\mu i} w^{\star}_i}\right)
+    \quad\quad \text{(No summation over $\mu$)},
+\end{equation}
+called the \emph{logistic loss}. Its associated MLE is
+\begin{equation}
+    \hat{w}_{\text{ML}} = \underset{w}{\text{argmin }} \frac{1}{n}\sum_{\mu = 1}^{n}
+    \ln\left(1+e^{-y_{\mu} X_{\mu i} w^{\star}_i}\right).
+\end{equation}
+One can (and should) also add a regularization term, as before. Other losses exist, which come from other likelihoods. A common example is the \emph{hinge loss}:
+\begin{equation}
+    l_{hinge}(y_{\mu}, X_{\mu i} w^{\star}_i)
+    =
+    \max (0,1-y_{\mu} X_{\mu i} w^{\star}_i)
+    \quad\quad \text{(No summation over $\mu$)}.
+\end{equation}
+\subsubsection*{$K$-Classes}
+One can imagine comparing "one class vs the rest" and reduce the situation to a two-class problem, which is typically done with e.g. the hinge loss. However, the logistic loss framework of above can be extended. The data is \emph{one-hot encoded}: For a sample $X_{\mu}$ belonging to the $b$-th class, one defines the label as
+\begin{equation}
+    y_{\mu a} = 1 \text{ if } a=b,\quad y_{\mu a} = 0 \text{ if } a\neq b.
+\end{equation}
+One then has $y_{\mu a} \in \mathbb{R}^{n\times K}$ and defines, correspondingly, the weights $w_{i a} \in \mathbb{R}^{d\times K}$. Let $$p_{\mu a} = P(y_{\mu a} = 1| X_{\mu i} w^{\star}_{ia})$$ be the probability that sample $\mu$ is in the category $a$, given the data and the weights (to be defined below). The following model for the whole label then seems reasonable:
+\begin{equation}
+    P_{out}(y_{\mu}| X_{\mu i} w^{\star}_i)
+    =
+    \prod_{a=1}^{K} \mathbf{1}(y_{\mu a}=1) p_{\mu a}
+    =
+    \prod_{a=1}^{K} p_{\mu a}^{y_{\mu a}}.
+\end{equation}
+This model leads to the so-called \emph{cross-entropy loss}:
+\begin{equation}
+    \mathcal{L}_{CE}(w)
+    =
+    -\frac{1}{n} \sum_{\mu = 1}^{n}\sum_{a=1}^{K}
+    y_{\mu a} \ln{p_{\mu a}}.
+\end{equation}
+In analogy with Eq. (\ref{eq:logisticlikelihood}), the $p_{\mu a}$ are given by
+\begin{equation}
+    p_{\mu a}
+    =
+    \frac{e^{X_{\mu i} w^{\star}_{ia}}}{\sum_{b=1}^{K} e^{X_{\mu i} w^{\star}_{ib}}}
+    \equiv
+    \text{softmax}(X_{\mu i} w^{\star}_{ia}).
+\end{equation}
+This model, classification of samples into $K$ classes where the belonging probabilities are given by the softmax function, is called \emph{multinomial logistic regression}. The simple 2-class logistic regression can be seen as a special case with the substitutions $-1\rightarrow 0$ and $+1\rightarrow 1$.
+
+\newpage
+\section{Dimensionality Reduction, Monte-Carlo Methods and Unsupervised Learning}
+Rather than learning from data with labels and being able to predict outcomes on new data (supervised learning), \emph{unsupervised learning} methods aim to discover "on their own" patterns in unlabeled data. Examples include finding clusters in data, low-rank matrix completion in recommendation systems, etc. A common task of unsupervised learning is \emph{dimensionality reduction}, that is, given a high dimensional dataset $X_{\mu} \in \mathbb{R}^d$, find a representation of this data in a lower-dimensional space $\mathbb{R}^k$ with $k\ll d$.
+
+\subsection{Principal Component Analysis (PCA)}
+The idea of PCA is to perform an orthogonal change of coordinates on the data such that in the new coordinate system it has the most variance in the first dimension, the second-most variance in the second dimension, and so on, as illustrated for a 2D case in Fig. (\ref{fig:pca}). The method by which this is achieved is most conveniently defined in terms of another method, \emph{Singular Value Decomposition} (SVD).
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\linewidth]{PCA}
+    \caption{Illustration of PCA on a multivariate gaussian scatter in 2D (By Nicoguaro - Own work, CC BY 4.0, \url{https://commons.wikimedia.org/w/index.php?curid=46871195})}
+    \label{fig:pca}
+\end{figure}
+\subsubsection*{Singular Value Decomposition}
+Let $X \in \mathbb{R}^{n\times d}$ be a non-symmetric data matrix. The SVD of $X$ is obtained by writing it as
+\begin{equation}
+    X = U\Sigma V^T,
+    \label{eq:svd}
+\end{equation}
+where $U\in \mathbb{R}^{n\times n}$ and $V\in \mathbb{R}^{d\times d}$ are real orthonormal matrices and $\Sigma \in \mathbb{R}^{n\times d}$ is a rectangular diagonal matrix with non-negative real elements $\Sigma_{ii} = \sigma_i \geq 0$, called \emph{singular values} of $X$. The columns of $U$ are called \emph{left singular vectors} and the rows of $V^T$ \emph{right singular vectors}. The following holds:
+\begin{equation}
+    \text{rank}(X) = \sum_{i} \mathbf{1}(\sigma_i > 0)
+    \leq \min(n,d).
+\end{equation}
+Also, from \ref{eq:svd},
+\begin{align}
+    X^TX &=
+    V\Sigma^T U^T U\Sigma V^T
+    =
+    V\Lambda V^T
+\end{align}
+where $\Lambda = \Sigma^T\Sigma$ is a square $d\times d$ diagonal matrix with entries $\sigma_i^2$,
+\begin{equation}
+    \Sigma =
+    \begin{pmatrix}
+        \sigma_1 & 0 & \ldots & 0 \\
+        0 & \sigma_2 &  & \vdots \\
+        \vdots & & \ddots & 0 \\
+        0 &  \dots & \dots&   \sigma_d \\
+        0 &  \dots & \dots&   0 \\
+        \vdots & & &   \vdots \\
+        0 &  \dots & \dots &   0
+    \end{pmatrix}
+    \quad \implies \quad
+    \Sigma^T\Sigma =
+    \begin{pmatrix}
+        \sigma_1^2 &  & 0 \\
+        & \ddots & \\
+        0 & &\sigma_d^2
+    \end{pmatrix}
+    \equiv \Lambda.
+\end{equation}
+Hence, the eigenvectors of the covariance matrix $X^T X$ are the right-singular vectors of $X$, while the square root of its eigenvalues are the singular values of $X$. The \textbf{Young-Eckhart-Mirsky Theorem} states that the best \emph{rank-$k$ approximation} $X^{(k)}$ of $X$ in the sense of minimizing the Frobenius norm of their difference
+$ || X^{(k)} - X ||_F$ is given by
+\begin{equation}
+    X_{\mu i}^{(k)}
+    =
+    \sum_{s=1}^{k} U_{\mu s} \sigma_s V_{i s},
+\end{equation}
+where $U_{\mu s}$ is the $s$-th left-singular vector, $V_{i s}$ the $s$-th right-singular vector and $\sigma_s$ the $s$-th singular value of $X$.
+
+\subsection{Bayesian Estimators}
+Let $X$ be some data, $\theta$ be a parameter we wish to estimate, and $\hat{\theta}(X)$ an estimator of this parameter. Let $L(\theta,\hat{\theta})$ be a loss function. A \emph{Bayes estimator} is an estimator that minimizes the \emph{posterior expected loss}, that is,
+\begin{equation}
+    \hat{\theta}_{\text{Bayes}} = \underset{\hat{\theta}}{\text{argmin}}\left[
+    E(L(\theta,\hat{\theta}) | X)\right],
+\end{equation}
+noting that $E$ represents a conditional expectation over $\theta$ given $X$.
+\subsubsection*{Minimum Mean Square Error}
+The most common example for the above is by taking the mean square error (MSE) as the loss function. Then, the Bayes estimator is
+\begin{equation}
+    \hat{\theta}_{\text{MMSE}} =
+    \underset{\hat{\theta}}{\text{argmin }} E\left[(\hat{\theta} - \theta)^2 | X \right],
+\end{equation}
+where the expectation is taken over the posterior $(\theta | X)$ and \textbf{not} the prior:
+\begin{equation}
+    E\left[(\hat{\theta} - \theta)^2  | X\right]
+    =
+    \int P(\theta | X) (\hat{\theta} - \theta)^2 d\theta.
+\end{equation}
+The minimum of this expression can be found by takng a formal derivative:
+\begin{align}
+    \frac{\partial}{\partial \hat{\theta}}
+    E\left[(\hat{\theta} - \theta)^2 \right]
+    = 2\int P(\theta | X) (\hat{\theta} - \theta) d\theta
+    &\overset{!}{=} 0 \\
+    \implies
+    \int  P(\theta | X) \hat{\theta} d\theta
+    - \int  P(\theta | X) \theta d\theta &= 0 \\
+    \implies
+    \hat{\theta} = \int P(\theta | X)\theta d\theta
+    &\equiv E\left[ \theta | X\right],
+\end{align}
+since the prior is normalized to 1. The discrete form of the above is
+\begin{equation}
+    \hat{\theta} = E\left[ \theta | X\right]
+    =
+    \sum_{\theta} P(\theta | X)\theta.
+\end{equation}
+If we have an analytical expression for the posterior, we could imagine calculating it for every possible value of $\theta$. However, this is unfeasible in most practical cases, where $\theta$ is not a scalar. The above then becomes
+\begin{equation}
+    \hat{\theta_j}
+    =
+    %\sum_{\{\theta_i\}_{i=1}^N} P(\theta | X)\theta_j,
+    \sum_{\theta \in \Theta} P(\theta | X)\theta_j,
+    \label{eq:mmse_theta}
+\end{equation}
+and the sum now runs over the space $\Theta$ of all \emph{configurations} of $\theta$, and $\theta_j$ in the sum is the $j$-th entry of $\theta$ in the current configuration. In the example of the spin glass game discussed in the lecture, $\theta$ is a vector of length $N$ where each entry can take 2 values. Summing over all its configurations would amount to considering $2^N$ configurations, which is unfeasible already if $N=100$. This means that another approach is required for calculating these sums/integrals.
+
+\subsection{Monte-Carlo Methods}
+The main idea of \emph{Monte-Carlo integration} is to use random sampling to approximate an analytical expression. In the case at hand, the expression we wish to compute is a sum of values weighted by a probability. If we had a way of drawing samples of $\theta$ that follow its posterior distribution, we could then imagine approximating the sum by summing a large enough number $T$ of samples. This would put more weight on the configurations of $\theta$ for which the posterior is larger, just like in the original sum in Eq. (\ref{eq:mmse_theta}):
+\begin{equation}
+    \hat{\theta_j}
+    \approx
+    \frac{1}{T}
+    \sum_{t=1}^{N} \theta_j^{(t)}
+    =
+    \langle \theta_j \rangle_t,
+\end{equation}
+where $\theta_j^{(t)}$ is the $t$-th sample drawn from $P(\theta | X)$. This is closely related to the ergodic hypothesis of statistical physics, where an equivalence between ensemble average and time average is postulated, with random sampling taking the role of time evolution. This means that, if we have a practical way of generating samples of a known probability distribution, the problem of computing sums like Eq. (\ref{eq:mmse_theta}) becomes manageable. This is what \emph{Markov Chain Monte Carlo} (MCMC) methods do.
+\subsubsection*{Markov Chain Monte-Carlo (MCMC) Methods}
+A \emph{Markov Chain} is a sequence of random variables $\{\theta^{(t)}\}_{t=1}^T$ such that for any $t$, the probability distribution of the next state $\theta^{(t+1)}$ depends only on the current state $\theta^{(t)}$. Formally,
+\begin{equation}
+    P(\theta^{(t+1)} | \theta^{(t)}, \theta^{(t-1)}, \dots,\theta^{(0)})
+    =
+    P(\theta^{(t+1)} | \theta^{(t)}).
+\end{equation}
+One defines a transition probability $w(x\rightarrow y)$,
+\begin{equation}
+    w(x\rightarrow y) \equiv P(\theta^{(t+1)} =y\ |\ \theta^{(t)}=x),
+\end{equation}
+and the joint distribution of the entire sequence is given by
+\begin{equation}
+    P\left(\{\theta^{(t)}\}_{t=1}^T\right)
+    =
+    P(\theta^{(0)}) \prod_{t=0}^{T}
+    w(\theta^{(t)}\rightarrow \theta^{(t+1)}).
+\end{equation}
+One can then write down a recursive relation for $P^{(t)}(\theta)$:
+\begin{equation}
+    P^{(t+1)}(\theta)
+    =
+    \sum_{\theta' \in \Theta} w(\theta'\rightarrow \theta) P^{(t)}(\theta').
+\end{equation}
+Under certain conditions, the Markov chain has an \emph{equilibrium distribution} $\tilde{P}$ for $t\rightarrow\infty$ that satisfies
+\begin{equation}
+    \tilde{P}(\theta)
+    =
+    \sum_{\theta' \in \Theta} w(\theta'\rightarrow \theta) \tilde{P}(\theta').
+\end{equation}
+The idea of a MCMC method is to construct a Markov chain such that its equilibrium distribution is the distribution one wants to sample. In practice, one initializes the algorithm to some (often random) configuration $\theta^{(0)}$ and then evolves the chain. After a \emph{burn-in} or \emph{thermalization} time $T^{\star}$, one assumes the chain to have reached its equilibrium distribution and starts collecting the values $\theta^{(t>T^{\star})}$ as samples of the desired distribution.
+\subsubsection*{The Metropolis-Hastings Algorithm}
+The MH algorithm is a concrete example of a MCMC method. \dots
+\subsubsection*{Gibbs Sampling}
+Another common MCMC method is the so-called Gibbs sampler. \dots
+
+\subsection{Applications of MCMC}
+The computation of posterior means (Eq. \ref{eq:mmse_theta}) to obtain Bayes estimators is only one among the many uses of MCMC methods. In general, being able to generate samples from any probability distribution efficiently is useful for a wide range of applications.
+\subsubsection*{Inference and Optimization}
+The MAP estimator introduced in the beginning involves maximizing some known probability distribution. This can be done efficiently, as we saw, using GD or its variants. However, these methods tend to get "stuck" near local maxima and also cannot give an accurate picture of the degeneracy between different parameters, i.e. how different combinations of the parameters can give rise to an equivalently high posterior. This is necessary when one wants to give confidence intervals of parameters which include the covariances between them, typically visualized by a so-called corner plot. To use an MCMC method for this task, consider again a chain of samples $\{\theta^{(t)}\}_{t=1}^T$ drawn from $P(\theta | X)$. By construction, the chain will "spend more time" close to maxima of $P(\theta | X)$, or equivalently contain more samples of $\theta$ close to them. By appropriately processing the whole set of samples, these maxima, along with correlated confidence intervals, can be found.
+\subsubsection*{Simulated Annealing}
+A slightly different task is finding minima/maxima when the considered distribution has a hyperparameter that changes its shape. Consider for example a Boltzmann distribution from statistical physics,
+\begin{equation}
+    P(S) = \frac{e^{-H(S)/T}}{Z},
+\end{equation}
+where $Z$ is the partition function (which acts as a normalization), $T$ is the temperature, $H$ the hamiltonian and $S$ a vector characterizing the state of the system (e.g. a vector of Ising spins). One might want to find the ground states of this system (i.e. those that maximize $P(S)$) when the temperature is very low, $T\rightarrow 0$. If one simply sets $T$ close to 0, initializes $S$ at random and starts sampling $P$ to find its maximum, the chain will tend to converge very slowly. A better method, known as \emph{annealing}, is to start the chain at high temperature and decrease it at every step of the MCMC algorithm. This way, the system is simulated while cooling down gradually, and it becomes easier to find the ground state.
+\subsubsection*{Expectation-Maximization (ME) Algorithm}
+Suppose now that the statistical model additionally depends on some unknown hyperparameter $\rho$. 
+\subsection{Clustering}
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+% ################################################################
+
+
+\noindent\textbf{\underline{Theorem:} Young-Eckhart-Mirsky}
+
+\noindent Let $X^{(k)}$ be the rank-$k$ approximation of $X$, that is, a new matrix such that $\text{rank}(X^{(k)}) = k$ and.
+\begin{equation}
+    X^TX =
+    V\Sigma^T U^T U\Sigma V^T
+    =
+    V\Sigma^T\Sigma V^T,
+\end{equation}
+
+
+$\Sigma_{ii} = \sigma_i, \Sigma_{ij} = 0$ if $i\neq j$. The scalars $\sigma_i \in \mathbb{R}, \sigma_i > 0 \forall i$ are called \emph{singular values} of $X$
+
+Since a given sample either is or isn't in a given category, the above describes a Brenouilli variable, and so
+\begin{equation}
+    P_{out} (y_{\mu a}| X_{\mu i} w^{\star}_i) = p_{\mu a}^{y_{\mu a}} (1-p_{\mu a})^{1-y_{\mu a}},
+\end{equation}
+where $\sum_{a=1}^{K}p_{\mu a} = 1$.
+
+y_{\mu} \in \mathbb{R}^{K},\quad 
+
+
+Substituting $-1\rightarrow 0$ and $+1\rightarrow 1$, the logistic probabilistic model Eq. (\ref{eq:logisticlikelihood}) generalizes quite naturally to $K$ classes:
+\begin{equation}
+    P_{out} (y_{\mu a} | X_{\mu i} w^{\star}_i)
+    =
+    \frac{e^{X_{\mu i} w^{\star}_{i a}}}{e^{\sum_{b=1}^{K} X_{\mu i} w^{\star}_{i a}}}
+    \equiv
+    p_{\mu a}
+\end{equation}
+
+
+
+$X_{\mu i} \in \mathbb{R}^{n \times p}$
+
+Using the above concepts, one can define so-called \emph{general linear models} (GLMs), which are used typically to perform linear regression on data to obtain estimates of some variables of interest. In the Bayesian framework, this is done by assuming that the data are sampled from a chosen distribution and obtaining estimates of its parameters. Depending on the choice of distribution and estimator, one obtains different regression models, such as the ordinary least squares,..
+
+
+A \emph{general linear model} (GLM) assumes a linear relationship between the labels and the data, via the weights
+\begin{equation}
+    y_{\mu = }X_{\mu i} w^i + \xi_{\mu},
+\end{equation}
+where Einstein summation is implied from now on.
+\subsection*{Ordinary Least Squares}
+Ordinary least squares (OLS) is the simplest linear regression model, which can be postulated heuristically. However, using the above, it emerges naturally under certain common assumptions.
+
+
+\textbf{N. B. } In general, $\theta$ can represent any number of parameters. For e.g. two parameters $\theta_1$ and $\theta_2$,
+\begin{equation}
+    P(\theta_1 | X, \theta_2)
+    =
+    \frac{P(X,\theta_1,\theta_2)}{P(X,\theta_2)}
+    =
+    \frac{P(X | \theta_1, \theta_2) P(\theta_1,\theta_2)}{P(X,\theta_2)}
+\end{equation}
+Where the denominator (the evidence) can again act as a constant as it is independent of $\theta_1$.
