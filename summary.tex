@@ -21,7 +21,7 @@
 \newgeometry{top=1in,bottom=1in,left=1in,right=1in}
 \maketitle
 \section{Bayesian Inference, Linear Models and Supervised Learning}
-The idea of inference is to \emph{infer} the values of a set of parameters $\theta$\dots
+The philosophy of bayesian inference is to improve the a priori information one has about a parameter $\theta$ via observations or data.
 Some basic concepts:
 \begin{itemize}
     \item Conditional probability:
@@ -39,12 +39,12 @@ In the case of inference, the typical problem is to estimate a set of parameters
 \end{equation}
 The elements of this formula are called
 \begin{itemize}
-    \item $P(\theta|X)$: The \emph{posterior distribution}
-    \item $P(X|\theta)$: The \emph{likelihood}. This is often where one "chooses a model", by assuming that the data follows a certain probability distribution (gaussian, poissonian, exponential,...) of which $\theta$ are parameters (e.g. the mean, variance,...).
-    \item $P(\theta)$: The \emph{prior distribution}. This is the information one has about the parameters before the experiment and typically doesn't have an obvious form.
+    \item $P(\theta|X)$: The \emph{posterior distribution}: It encodes, in the Bayesian thinking, the best knowledge one has about $\theta$ given the observations $X$.
+    \item $P(X|\theta)$: The \emph{likelihood}. This is often where one "chooses a model", by assuming that the data follows a certain probability distribution (gaussian, poissonian, exponential,...) of which $\theta$ are parameters.
+    \item $P(\theta)$: The \emph{prior distribution}. This is the information one has about the parameters \emph{a priori}, that is, without any observations.
     \item $P(X)$: The \emph{evidence}. This is independent of $\theta$ and thus acts as a normalization constant for the posterior. 
 \end{itemize}
-The two most common \emph{estimatorss} for $\theta$ are:
+The two most common \emph{estimators} for $\theta$ are:
 \begin{enumerate}
     \item \textbf{Maximum Likelihood Estimator (MLE)}:
         \begin{equation*}
@@ -59,20 +59,20 @@ The two most common \emph{estimatorss} for $\theta$ are:
             \underset{\theta}{\text{argmax}} \left[ P(\theta|X) \right]
         \end{equation*}
 \end{enumerate}
-The former (MLE) can be seen as a special case of MAP when the prior is a uniform distribution (i.e. $P(\theta) = const.$). In practice, one can in certain cases assume that with a lot of data, the posterior is dominated by the likelihood, making this a valid assumption.
+Formally, the MLE can be seen as a special case of MAP when the prior is a uniform distribution (i.e. $P(\theta) = const.$). In practice, one can in certain cases assume that with a lot of data, the posterior is dominated by the likelihood, making this a valid assumption.
 \restoregeometry
-\noindent Often, one is interested in situations where there are multiple conditions. For example, suppose that in addition to $\theta$ that we wish to learn, there is additional information $y$ that is known. Then, using the definition of conditional probability multiple times,
+\noindent In supervised learning, one is interested in situations where \dots Then, using the definition of conditional probability multiple times,
 \begin{equation}
     P(\theta | X,y) = \frac{P(\theta,X,y)}{P(X,y)}
     =
-    \frac{P(y|w,X)P(w,X)}{P(y|X)P(X)}
+    \frac{P(y|\theta,X)P(\theta,X)}{P(y|X)P(X)}
     =
-    \frac{P(y|w,X)P(w|X)P(X)}{P(y|X)P(X)}
+    \frac{P(y|\theta,X)P(\theta|X)P(X)}{P(y|X)P(X)}
     =
-    \frac{P(y|w,X)P(w|X)}{P(y|X)}.
+    \frac{P(y|\theta,X)P(\theta|X)}{P(y|X)}.
     \label{eq:posterior}
 \end{equation}
-The elements of this formula inherit the names given above: $P(\theta | X,y)$ is the posterior, $P(y|w,X)$ the likelihood, $P(w|X)$ the prior and $P(y|X)$ the evidence. The estimators translate naturally to this context.
+The elements of this formula inherit the names given above: $P(\theta | X,y)$ is the posterior, $P(y|\theta,X)$ the likelihood, $P(\theta|X)$ the prior and $P(y|X)$ the evidence. The estimators translate naturally to this context.
 \subsection{Linear Models}
 In the context of supervised machine learning, the following nomenclature will be used:
 The \textbf{data} is represented by a matrix $X_{\mu i} \in \mathbb{R}^{n \times d}$ where $\mu = 1,\dots,n$ indexes the \textbf{sample} and $i = 1,\dots,d$ indexes the \textbf{feature}. To each data sample corresponds a \textbf{label} $y_{\mu} \in \mathbb{R}^n$. A \textbf{model} parametrized by a set of \textbf{weights} $w_i \in \mathbb{R}^d$ establishes a relationship between the data and the labels. Implicitely, one assumes that there is a set of \textbf{ground truth} weights $w_i^{\star}$ that represent the "true" values. The full \textbf{dataset} is in general split into a \textbf{training set}, which is used as the name suggests to train the model using the methods described in what follows, the \textbf{validation set}, used to fix so-called \textbf{hyperparameters} of the model, and a \textbf{test set}, used at the very end to evaluate the performance of the model on completely fresh data. The metrics used to evaluate performance are called \textbf{errors} or \textbf{losses} depending on the context and can take different forms depending on the system that is considered.
@@ -349,6 +349,7 @@ In analogy with Eq. (\ref{eq:logisticlikelihood}), the $p_{\mu a}$ are given by
     \frac{e^{X_{\mu i} w^{\star}_{ia}}}{\sum_{b=1}^{K} e^{X_{\mu i} w^{\star}_{ib}}}
     \equiv
     \text{softmax}(X_{\mu i} w^{\star}_{ia}).
+    \label{eq:softmax}
 \end{equation}
 This model, classification of samples into $K$ classes where the belonging probabilities are given by the softmax function, is called \emph{multinomial logistic regression}. The simple 2-class logistic regression can be seen as a special case with the substitutions $-1\rightarrow 0$ and $+1\rightarrow 1$.
 
@@ -361,7 +362,7 @@ The idea of PCA is to perform an orthogonal change of coordinates on the data su
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.5\linewidth]{PCA}
-    \caption{Illustration of PCA on a multivariate gaussian scatter in 2D (By Nicoguaro - Own work, CC BY 4.0, \url{https://commons.wikimedia.org/w/index.php?curid=46871195})}
+    \caption{Illustration of PCA on a multivariate gaussian scatter in 2D (By Nicoguaro - Own work, CC BY 4.0, \url{https://commons.wikimedia.org/w/index.php?curid=46871195}). The black arrows represent the coordinate system constructed from the 2 right singular vectors of the data, and their length represents the size of their associated singular value.}
     \label{fig:pca}
 \end{figure}
 \subsubsection*{Singular Value Decomposition}
@@ -375,7 +376,7 @@ where $U\in \mathbb{R}^{n\times n}$ and $V\in \mathbb{R}^{d\times d}$ are real o
     \text{rank}(X) = \sum_{i} \mathbf{1}(\sigma_i > 0)
     \leq \min(n,d).
 \end{equation}
-Also, from \ref{eq:svd},
+Also, from \ref{eq:svd}, the \emph{covariance matrix} $X^TX$ can be written as
 \begin{align}
     X^TX &=
     V\Sigma^T U^T U\Sigma V^T
@@ -403,22 +404,44 @@ where $\Lambda = \Sigma^T\Sigma$ is a square $d\times d$ diagonal matrix with en
     \end{pmatrix}
     \equiv \Lambda.
 \end{equation}
-Hence, the eigenvectors of the covariance matrix $X^T X$ are the right-singular vectors of $X$, while the square root of its eigenvalues are the singular values of $X$. The \textbf{Young-Eckhart-Mirsky Theorem} states that the best \emph{rank-$k$ approximation} $X^{(k)}$ of $X$ in the sense of minimizing the Frobenius norm of their difference
+Hence, the eigenvectors of the covariance matrix are the right-singular vectors of $X$, while the square root of its eigenvalues are the singular values of $X$. The \textbf{Young-Eckhart-Mirsky Theorem} states that the best \emph{rank-$k$ approximation} $X^{(k)}$ of $X$ in the sense of minimizing the Frobenius norm of their difference
 $ || X^{(k)} - X ||_F$ is given by
 \begin{equation}
     X_{\mu i}^{(k)}
     =
     \sum_{s=1}^{k} U_{\mu s} \sigma_s V_{i s},
 \end{equation}
-where $U_{\mu s}$ is the $s$-th left-singular vector, $V_{i s}$ the $s$-th right-singular vector and $\sigma_s$ the $s$-th singular value of $X$.
+where the sum goes over the $k$ largest singular values $\sigma_s$. 
 
-\subsection{Bayesian Estimators}
-Let $X$ be some data, $\theta$ be a parameter we wish to estimate, and $\hat{\theta}(X)$ an estimator of this parameter. Let $L(\theta,\hat{\theta})$ be a loss function. A \emph{Bayes estimator} is an estimator that minimizes the \emph{posterior expected loss}, that is,
+\subsubsection*{PCA and Dimensionality Reduction}
+The principal component decomposition of order $k\leq d$ of $X$ is the new matrix $T^{(k)} \in \mathbb{R}^{n\times k}$ defined by
+\begin{equation}
+    T^{(k)} = XV^{(k)},
+\end{equation}
+where $V^{(k)} \in \mathbb{R}^{d\times k}$ is a matrix whose columns are the $k$ right-singular vectors of $X$ corresponding to the $k$ largest singular values. $T^{(k)}$ represents a new version of the data whose dimensionality has been reduced to $k$ from $d$, in a way that ensures that as much information as possible has been retained in the process, as guaranteed by the YEM theorem. In a more informal way, what PCA does is
+\begin{enumerate}
+    \item Compute the SVD of $X$ and find its singular values and right-singular vectors.
+    \item Order the right singular vectors by their associated singular value, from highest to lowest.
+    \item Project the data $X$ on the coordinate system formed by the $k$ first of these vectors to form $T$, the transformed $k$-dimensional data.
+\end{enumerate}
+Since the PCA is an orthogonal transformation, the projection is geometrically just a rotation. Moreover, in general, the data are first centered and normalized so that their mean is 0 and their variance 1. Determining how many principal components to keep (i.e. the value of $k$) depends on the problem at hand, but a basic strategy is to plot a histogram of the eigenvalues of $X^TX$ and look at its structure: if there are a few eigenvalues visibly larger than the bulk, this number is in general a good guess for $k$.
+%where $U_{\mu s}$ is the $s$-th left-singular vector, $V_{i s}$ the $s$-th right-singular vector and $\sigma_s$ the $s$-th singular value of $X$.
+
+\subsection{Bayesian Estimation}
+Previously, the two most common estimators - the ML and MAP - have been introduced. Both of these estimators are \emph{pointwise}, that is, they provide a single value given by the maximum of some probability distribution, which is in general found numerically. Here, a more general framework with a wide range of applications is introduced.
+
+Let $X$ be some data, $\theta$ a parameter we wish to estimate, $\hat{\theta}(X)$ an estimator of this parameter and $L(\theta,\hat{\theta})$ a loss function. A \emph{Bayes estimator} is an estimator that minimizes the \emph{posterior expected loss}, that is,
 \begin{equation}
     \hat{\theta}_{\text{Bayes}} = \underset{\hat{\theta}}{\text{argmin}}\left[
     E(L(\theta,\hat{\theta}) | X)\right],
 \end{equation}
 noting that $E$ represents a conditional expectation over $\theta$ given $X$.
+More informally, one does Bayes estimation when one has access to the whole posterior, in the sense of being able to compute statistical moments (mean, variance,covariance,etc.) on it.
+\begin{itemize}
+    \item In the basic ML/MAP estimators, we define a loss function from the posterior and numerically find its minimum via GD or its variants.
+    \item In Bayes estimation, we get a view of the whole landscape of the posterior (which may include multiple maxima) and based on that, compute quantities, typically the mean and variance of the parameters. This gives a more complete picture of the information we have about the parameters.
+\end{itemize}
+
 \subsubsection*{Minimum Mean Square Error}
 The most common example for the above is by taking the mean square error (MSE) as the loss function. Then, the Bayes estimator is
 \begin{equation}
@@ -444,7 +467,7 @@ The minimum of this expression can be found by takng a formal derivative:
     \hat{\theta} = \int P(\theta | X)\theta d\theta
     &\equiv E\left[ \theta | X\right],
 \end{align}
-since the prior is normalized to 1. The discrete form of the above is
+since the prior is normalized to 1. Hence, \textbf{the MMSE is just the mean of the posterior}! The discrete form of the above is
 \begin{equation}
     \hat{\theta} = E\left[ \theta | X\right]
     =
@@ -458,10 +481,13 @@ When, instead of a scalar parameter $\theta$ one has a set of parameters or late
     \sum_{S \in \mathcal{S}} P(S | X)S_j,
     \label{eq:mmse_theta}
 \end{equation}
-and the sum now runs over the space $\mathcal{S}$ of all \emph{configurations} of $S$, and $S_j$ in the sum is the $j$-th entry of $S$ in the current configuration. If we have an analytic expression for the posterior $P(S|X)$, one could imagine computing Eq. (\ref{eq:mmse_theta}) directly by computing it for every $S\in\mathcal{S}$, but this is generally unfeasible. In the example of the spin glass game discussed in the lecture, $S$ is a vector of length $N$ where each entry can take 2 values. Summing over all its configurations would amount to considering $2^N$ configurations, which is unfeasible already if $N=100$. This means that another approach is required for calculating these sums/integrals.
+and the sum now runs over the space $\mathcal{S}$ of all \emph{configurations} of $S$, and $S_j$ in the sum is the $j$-th entry of $S$ in the current configuration. If we have an analytic expression for the posterior $P(S|X)$, one could imagine computing Eq. (\ref{eq:mmse_theta}) directly by computing it for every $S\in\mathcal{S}$, but this is generally unfeasible. In the example of the spin glass game discussed in the lecture, $S$ is a vector of length $N$ where each entry can take 2 values. Summing over all its configurations would amount to considering $2^N$ configurations, which is unfeasible already if $N=100$.
+%This means that another approach is required for calculating these sums/integrals.
+
+The above is only one example of a situation where one needs to compute some statistical quantity from a known distribution, but can neither find an analytical expression for said quantity nor calculate it explicitely due to the large number of terms to consider. An alternative method for dealing with this type of computations is required, and is provided by \emph{Monte-Carlo} methods.
 
 \subsection{Monte-Carlo Methods}
-The main idea of \emph{Monte-Carlo integration} is to use random sampling to approximate an analytical expression. In the case at hand, the expression we wish to compute is a sum of values weighted by a probability. If we had a way of drawing samples of $S$ that follow its posterior distribution, we could then imagine approximating the sum by summing a large enough number $T$ of samples. This would put more weight on the configurations of $S$ for which the posterior is larger, just like in the original sum in Eq. (\ref{eq:mmse_theta}):
+The main idea of MC methods is to use random sampling to approximate an analytical expression. In the case at hand, the expression we wish to compute is a sum of values weighted by a probability. If we had a way of drawing samples of $S$ that follow its posterior distribution, we could then imagine approximating the sum by summing a large enough number $T$ of samples. This would put more weight on the configurations of $S$ for which the posterior is larger, just like in the original sum in Eq. (\ref{eq:mmse_theta}):
 \begin{equation}
     \hat{S_j}
     \approx
@@ -470,7 +496,8 @@ The main idea of \emph{Monte-Carlo integration} is to use random sampling to app
     =
     \langle S_j \rangle_t,
 \end{equation}
-where $S_j^{(t)}$ is the $t$-th sample drawn from $P(S | X)$. This is closely related to the ergodic hypothesis of statistical physics, where an equivalence between ensemble average and time average is postulated, with random sampling taking the role of time evolution. This means that, if we have a practical way of generating samples of a known probability distribution, the problem of computing sums like Eq. (\ref{eq:mmse_theta}) becomes manageable. This is what \emph{Markov Chain Monte Carlo} (MCMC) methods do.
+where $S_j^{(t)}$ is the $t$-th sample drawn from $P(S | X)$. This is closely related to the ergodic hypothesis of statistical physics, where an equivalence between ensemble average and time average is postulated, with random sampling taking the role of time evolution. This means that, if we have a practical way of generating samples of a known probability distribution, the problem of computing sums like Eq. (\ref{eq:mmse_theta}) becomes manageable. 
+%This is what \emph{Markov Chain Monte Carlo} (MCMC) methods do.
 \subsubsection*{Markov Chain Monte-Carlo (MCMC) Methods}
 A \emph{Markov Chain} is a sequence of random variables $\{S^{(t)}\}_{t=1}^T$ such that for any $t$, the probability distribution of the next state $S^{(t+1)}$ depends only on the current state $S^{(t)}$. Formally,
 \begin{equation}
@@ -501,7 +528,7 @@ Under certain conditions, the Markov chain has an \emph{equilibrium distribution
     =
     \sum_{S' \in \Theta} w(S'\rightarrow S) \tilde{P}(S').
 \end{equation}
-The idea of a MCMC method is to construct a Markov chain such that its equilibrium distribution is the distribution one wants to sample. In practice, one initializes the algorithm to some (often random) configuration $S^{(0)}$ and then evolves the chain. After a \emph{burn-in} or \emph{thermalization} time $T^{\star}$, one assumes the chain to have reached its equilibrium distribution and starts collecting the values $S^{(t>T^{\star})}$ as samples of the desired distribution.
+\textbf{The idea of a MCMC method} is to construct a Markov chain such that its equilibrium distribution is the distribution one wants to sample. In practice, one initializes the algorithm to some (often random) configuration $S^{(0)}$ and then evolves the chain. After a \emph{burn-in} or \emph{thermalization} time $T^{\star}$, one assumes the chain to have reached its equilibrium distribution and starts collecting the values $S^{(t>T^{\star})}$ as samples of the desired distribution.
 \subsubsection*{The Metropolis-Hastings Algorithm}
 The MH algorithm is a concrete example of a MCMC method. \dots
 \subsubsection*{Gibbs Sampling}
@@ -535,9 +562,218 @@ $$Z(\rho) \equiv \sum_{S\in\mathcal{S}} P(X|S,\rho) P(S|\rho)$$
 as a "likelihood". However, the term $P(X|S,\rho)$ depends on $\rho$, the parameter we wish to infer! The ME algorithm is then defined as the following procedure:
 \begin{enumerate}
     \item Initialize $\rho$ at random.
-    \item Compute $P(X|S,\rho)$ for this value
+    \item \dots
 \end{enumerate}
-\subsection{Clustering}
+%\subsection{Clustering Problems}
+%\subsection{Generative Models and the Boltzmann Machine}
+
+\section{Features, Kernel Methods and Neural Networks}
+\subsection{Feature Maps and Kernels}
+Each sample $\mu = 1,\dots,n$ of data $X_{\mu} \in \mathbb{R}^d$ was considered so far to have $d$ features, represented by $X_{\mu} = (x_1,\dots,x_d)$. An \emph{added feature} is any (possibly nonlinear) function $f: \mathbb{R}^d \rightarrow \mathbb{R}$ of the existing features that creates a new one. Examples could be $f_1(x_1,x_2) = x_1x_2$, $f_2(x_1,x_2) = x_1^2 + x_2^2$, etc. A \emph{feature map} is a function $\phi: \mathbb{R}^d \rightarrow \mathbb{R}^p$ that transforms the data to a new feature space, usually by adding an arbitrary number of new ones. For example,
+\begin{equation}
+    X = (x_1,x_2,x_3) \in \mathbb{R}^3, \quad\quad
+    \phi(X) = (x_1,x_2,x_3,x_1x_2x_3,x_1^2 + x_2^3)
+    \in \mathbb{R}^5.
+\end{equation}
+Note that the polynomial regression introduced in the beginning is also a special case of this kind of construction. Adding features like this can make it possible to classify non linearly-separable data because it adds new dimensions to it, see the lecture notes p. 51 for a visual explanation.
+
+\noindent The \textbf{representer theorem} states that, for any loss of the form
+\begin{equation}
+    \mathcal{L}(w) = \frac{1}{n}\sum_{\mu = 1}^{n} l(y_{\mu}, X_{\mu i} w_i)+\lambda \sum_{i=1}^{d} w_i^2,
+    \label{eq:lossforkernel}
+\end{equation}
+its minimizer $\hat{w}\in \mathbb{R}^d$ can be expanded as
+\begin{equation}
+    \hat{w}
+    = \alpha_{\mu} X_{\mu}.
+\end{equation}
+Defining the \emph{Gram matrix} $G_{\mu\nu} \equiv X_{\mu i}X_{\nu i}$ and substituting the minimizer into the loss yields
+\begin{equation}
+    \mathcal{L}(\hat{w})
+    \equiv
+    \mathcal{L}(\alpha)
+    =
+    \frac{1}{n}\sum_{\mu = 1}^{n} l(y_{\mu}, \alpha_{\nu}G_{\mu\nu})+\lambda \alpha_{\mu}\alpha_{\nu}G_{\mu\nu},
+\end{equation}
+noting that the summation convention obviously applies. Rather than the Gram matrix defined above, one might imagine defining an alternative scalar product, called a \emph{kernel} $K_{\mu\nu} \equiv K(X_{\mu},X_{\nu})$ and generalize the above result to
+\begin{equation}
+    \mathcal{L}_K(\alpha)
+    =
+    \frac{1}{n}\sum_{\mu = 1}^{n} l(y_{\mu}, \alpha_{\nu}K_{\mu\nu})+\lambda \alpha_{\mu}\alpha_{\nu}K_{\mu\nu}.
+    \label{eq:kernelloss1}
+\end{equation}
+The original optimization problem is recast as
+\begin{equation}
+    \hat{w} = \underset{w}{\text{argmin }} \mathcal{L}(w)
+    \quad\longrightarrow\quad
+    \hat{\alpha} = \underset{\alpha}{\text{argmin }} \mathcal{L}_K(\alpha),
+\end{equation}
+which is called \emph{kernel regression}. We note that the predictor arising from this estimator is
+\begin{equation}
+    y_{\text{new}}
+    =
+    \hat{\alpha}_{\nu} K(X_{\nu},X_{\text{new}}).
+\end{equation}
+An alternative approach that makes more obvious the link between kernels and feature maps is to proceed as follows: rewrite the loss (Eq. \ref{eq:lossforkernel}) but instead of training over the original data $X$, train over the features $\phi(X)$. Writing $\phi_{\mu a} \equiv \phi_a(X_{\mu})$,
+\begin{equation}
+    \mathcal{L}(w) = \frac{1}{n}\sum_{\mu = 1}^{n} l(y_{\mu}, \phi_{\mu a} w_a)+\lambda \sum_{a=1}^{p} w_a^2,
+\end{equation}
+where the index $a$ now runs over $1,\dots,p$. Applying the representer theorem,
+\begin{equation}
+    \hat{w}_a
+    =
+    \alpha_{\mu}\phi_{\mu a}
+\end{equation}
+to the above yields
+\begin{equation}
+    \mathcal{L}(\alpha) =
+    \frac{1}{n}\sum_{\mu = 1}^{n}
+    l(y_{\mu}, \alpha_{\nu}\phi_{\mu a}\phi_{\nu a})
+    + \lambda
+    \alpha_{\mu}\alpha_{\nu}\phi_{\mu a}\phi_{\nu a},
+\end{equation}
+which, defining the kernel or \emph{kernel gram matrix} as $K(X_{\mu},X_{\nu}) \equiv \phi_{\mu a}\phi_{\nu a}$ becomes
+\begin{equation}
+    \mathcal{L}(\alpha) =
+    \frac{1}{n}\sum_{\mu = 1}^{n}
+    l(y_{\mu}, \alpha_{\nu}K(X_{\mu},X_{\nu}))
+    + \lambda
+    \alpha_{\mu}\alpha_{\nu}K(X_{\mu},X_{\nu}),
+\end{equation}
+which is nothing but Eq. (\ref{eq:kernelloss1}). This suggests that a kernel is \emph{defined} by the choice of a feature map, sort of like the loss function is defined by a choice of probabilistic model. Formally speaking, a kernel is a smooth function and can only be represented by an infinite number of features,
+\begin{equation}
+    K(X_{\mu},X_{\nu}) = \sum_{a=1}^{\infty} \phi_{\mu a}\phi_{\nu a}.
+\end{equation}
+However, in practice, by choosing some $p$ such that $d < p < n$, feature regression is equivalent to kernel regression to within a good degree and retains its useful aspects.
+As an example, consider the feature map $\phi: \mathbb{R}^1 \rightarrow \mathbb{R}^p$ defined by
+\begin{equation}
+    \phi(x)
+    =
+    (1,x^1,x^2,\dots,x^p),
+\end{equation}
+and let $p\rightarrow\infty$. The associated kernel is
+\begin{equation}
+    K(X_{\mu},X_{\nu})
+    =
+    \phi_{\mu a}\phi_{\nu a}
+    =
+    \sum_{k=1}^{\infty}
+    (X_{\mu}X_{\nu})^k
+    =
+    \frac{1}{1-X_{\mu}X_{\nu}}.
+\end{equation}
+This kernel can be trivially generalized to $d>1$. In the lecture it was shown that it can then be backward-engineered to find the $d$-dimensional feature map that defines it.
+
+\subsection{Neural Networks}
+In the lecture, an intermediary step called \emph{random feature regression} was used to introduce neural network. Essentially, it consists of constructing a $p$-dimensional feature map via
+\begin{equation}
+    \phi_{\mu a}
+    =
+    \phi_a (X_{\mu})
+    =
+    \sigma(F_{a i} X_{\mu i}), \quad\quad
+    F_{a i} \sim \mathcal{N}(0,\Delta^2) \quad \forall i=1,\dots,d,
+\end{equation}
+where $\sigma$ is a nonlinear function called \emph{activation function} (more on this later) that acts component-wise on a multidimensional input. The loss function then becomes
+\begin{equation}
+    \mathcal{L}(w) =
+    \frac{1}{n}\sum_{\mu = 1}^{n}
+    l(y_{\mu}, w_a \sigma(F_{a i} X_{\mu i}))
+    + \lambda \sum_{a=1}^{p} w_a^2.
+    \label{eq:slnn_loss}
+\end{equation}
+The basic idea of a \textbf{neural network} is to, rather than generating random $F_{a i}$, consider them as learnable parameters. The loss as written above represents a 1-layer neural network with $L_2$-regularization and $p$ \textbf{neurons} in the \textbf{hidden layer}. One can write the action of this network as simply
+\begin{equation}
+    f_W(X_{\mu})
+    = \sum_{a=1}^{p}
+    w_a \sigma(F_{a i} X_{\mu i}),
+    \label{eq:slnn_action}
+\end{equation}
+where the sum is made explicit again for clarity. Omitting the regularization term, which is often called \emph{weight decay} in the context of neural networks and isn't covered in the lecture, the loss becomes
+\begin{equation}
+    \mathcal{L}(w) =
+    \frac{1}{n}\sum_{\mu = 1}^{n}
+    l(y_{\mu}, f_W(X_{\mu}))
+    \label{eq:nn_loss}
+\end{equation}
+The above expression gives the general form of the loss function associated to a non-regularized neural network. The choice of the specific per-sample loss $l$ is left open, and the explicit form of $f_W$ is determined by the \emph{network architecture}. There is a hige variety in architectures, a few of which are covered in the rest of the lecture.
+
+A \emph{multilayer} or \emph{deep} neural network is obtained by "stacking" steps of activation/weighting, often graphically represented as in Fig. (\ref{fig:nn})
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.75\linewidth]{deep_nn}
+    \caption{Multilayer, fully-connected neural network. The squares in each layer correspond to the neurons, while the lines connecting them represent the weights $W^{(i)}_{a b}$. Each neuron implicitely has an associated nonlinear activation function, which somehow processes the input of the previous layer. \href{https://commons.wikimedia.org/wiki/File:Example_of_a_deep_neural_network.png}{Credit}}
+    \label{fig:nn}
+\end{figure}
+Specifically, this is a representation of a \emph{fully-connected} neural network, i.e. one where each neuron of a given layer influences every neuron in the next layer, and vice-versa. The action of such a network can be expressed as a generalization of Eq. (\ref{eq:slnn_action}),
+\begin{equation}
+    f_W(X_{\mu})
+    =
+    \sigma^{(L)}\left(
+        \sum_{a_L=1}^{p_L} W^{(L)}_{a_L a_{L-1}}
+        \sigma^{(L-1)}\left(
+            \sum_{a_{L-1}=1}^{p_{L-1}} W^{(L-1)}_{a_{L-1} a_{L-2}}
+            \ \dots \ 
+            \sigma^{(1)}\left(
+            \sum_{a_{1}=1}^{p_{1}} W^{(1)}_{a_{1} \mu} X_{\mu a_{1}}
+            \right)
+        \right)
+    \right),
+    \label{eq:mlnn_action}
+\end{equation}
+where $L$ is the total number of layers and $p_i$, $\sigma^{(i)}$ and $W^{(i)}$ are the number of neurons, activation function and weight matrix of the $i$-th layer respectively. An element of the weight matrix $W^{(i)}_{a b}$ of the $i$-th layer gives the weight associated to the connection between the $a$-th neuron of this layer and the $b$-th neuron of the previous layer. The number of \emph{input features} of layer $i$ corresponds to the number of neurons in the previous layer.
+Note that the first layer (called \emph{input layer}) "connects" to the data and hence has $d$ input features, while the last layer (called \emph{output layer}) corresponds to the output of the network.
+One further defines, for a given sample $\mu$ and each layer $i$, the \textbf{pre-activations} and \textbf{post-activations} of its neurons:
+\begin{align}
+    h^{(i)}_{a_{i+1}\mu} &=
+    \sum_{a_i=1}^{p_i} W^{(i)}_{a_{i+1}a_{i}} t^{(i-1)}_{a_{i}\mu} \\
+    t^{(i-1)}_{a_{i}\mu} &=
+    \sigma^{(i-1)}(h^{(i-1)}_{a_{i}\mu}) \\
+    \text{with } t^{(0)}_{\mu} &= X_{\mu}.
+\end{align}
+Intuitively, $t^{(i-1)}_{a_{i}\mu}$ is what comes out of the $a_{i}$-th neuron of the previous layer and $h^{(i)}_{a_{i+1}\mu}$ is what comes into the $a_{i+1}$-th neuron of the current layer.
+
+\subsubsection*{Activation Function and Losses}
+Common examples of activation functions are
+\begin{itemize}
+    \item Rectified Linear Unit (ReLU), the most used choice:
+    \begin{equation}
+        \sigma(x) = \max(0,x)
+    \end{equation}
+    \item Hyperbolic Tangent
+    \begin{equation}
+        \sigma(x) = \tanh(x)
+    \end{equation}
+    \item Sigmoid Function
+    \begin{equation}
+        \sigma(x) = \frac{1}{1+e^{-x}}
+    \end{equation}
+    \item Threshhold Function: This is the one that most resembles a biological neuron
+    \begin{equation}
+        \sigma(x) = \Theta(x-\kappa).
+    \end{equation}
+\end{itemize}
+The choice of a loss will depend a lot on the type of problem one is interested in. For regression, the most common loss is the well-known quadratic loss,
+\begin{equation}
+    l(y_{\mu}, f_W(X_{\mu}))
+    =
+    (y_{\mu} - f_W(X_{\mu}))^2.
+\end{equation}
+For classification into $K$ classes, the most common one is the cross-entropy loss,
+\begin{equation}
+    l(y_{\mu b}, f_W(X_{\mu}))
+    =
+    - \sum_{b=1}^{K}y_{\mu b} \ln{p_{\mu b}}
+    \quad\quad
+    p_{\mu b}
+    =
+    \text{softmax}\left(h^{(L)}_{b \mu}\right),
+\end{equation}
+with the softmax defined in Eq. (\ref{eq:softmax}). Note that in this context, the output layer $L$ naturally has $K$ neurons, corresponding to the $K$ categories. This is nothing but logistic regression, except that the input to the softmax is the activation of the output layer of the neural net.
+
+\subsubsection*{Backpropagation}
+
+\subsection{Convolutional Neural Networks}
 \end{document}
 
 
