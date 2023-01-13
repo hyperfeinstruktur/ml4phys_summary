@@ -61,31 +61,36 @@ The two most common \emph{estimators} for $\theta$ are:
 \end{enumerate}
 Formally, the MLE can be seen as a special case of MAP when the prior is a uniform distribution (i.e. $P(\theta) = const.$). In practice, one can in certain cases assume that with a lot of data, the posterior is dominated by the likelihood, making this a valid assumption.
 \restoregeometry
-\noindent In supervised learning, one is interested in situations where \dots Then, using the definition of conditional probability multiple times,
+\noindent In the context of \textbf{supervised machine learning}, the following nomenclature will be used:
+The \textbf{data} is represented by a matrix $X_{\mu i} \in \mathbb{R}^{n \times d}$ where $\mu = 1,\dots,n$ indexes the \textbf{sample} and $i = 1,\dots,d$ indexes the \textbf{feature}. The data is then said to be $d$-dimensional. To each data sample corresponds a \textbf{label} $y_{\mu} \in \mathbb{R}^n$. A \textbf{model} establishes a relationship between the data and the labels and is parametrized by a set of \textbf{weights} $w_i \in \mathbb{R}^d$ we wish to learn. Implicitely, one assumes that there is a set of \textbf{ground truth} weights $w_i^{\star}$ that represent the "true" values. The full \textbf{dataset} is in general split into a \textbf{training set}, which is used as the name suggests to train the model using the methods described in what follows, the \textbf{validation set}, used to fix so-called \textbf{hyperparameters} of the model, and a \textbf{test set}, used at the very end to evaluate the performance of the model on completely fresh data. The metrics used to evaluate performance are called \textbf{errors} or \textbf{losses} depending on the context and can take different forms depending on the system that is considered. The information about the parameters $w$ one wants to infer resides in the combination of $X$ and $y$. Thus, applying the definition of conditional probability multiple times, one has
 \begin{equation}
-    P(\theta | X,y) = \frac{P(\theta,X,y)}{P(X,y)}
+    P(w | X,y) = \frac{P(w,X,y)}{P(X,y)}
     =
-    \frac{P(y|\theta,X)P(\theta,X)}{P(y|X)P(X)}
+    \frac{P(y|w,X)P(w,X)}{P(y|X)P(X)}
     =
-    \frac{P(y|\theta,X)P(\theta|X)P(X)}{P(y|X)P(X)}
+    \frac{P(y|w,X)P(w|X)P(X)}{P(y|X)P(X)}
     =
-    \frac{P(y|\theta,X)P(\theta|X)}{P(y|X)}.
-    \label{eq:posterior}
+    \frac{P(y|w,X)P(w|X)}{P(y|X)}.
 \end{equation}
-The elements of this formula inherit the names given above: $P(\theta | X,y)$ is the posterior, $P(y|\theta,X)$ the likelihood, $P(\theta|X)$ the prior and $P(y|X)$ the evidence. The estimators translate naturally to this context.
-\subsection{Linear Models}
-In the context of supervised machine learning, the following nomenclature will be used:
-The \textbf{data} is represented by a matrix $X_{\mu i} \in \mathbb{R}^{n \times d}$ where $\mu = 1,\dots,n$ indexes the \textbf{sample} and $i = 1,\dots,d$ indexes the \textbf{feature}. To each data sample corresponds a \textbf{label} $y_{\mu} \in \mathbb{R}^n$. A \textbf{model} parametrized by a set of \textbf{weights} $w_i \in \mathbb{R}^d$ establishes a relationship between the data and the labels. Implicitely, one assumes that there is a set of \textbf{ground truth} weights $w_i^{\star}$ that represent the "true" values. The full \textbf{dataset} is in general split into a \textbf{training set}, which is used as the name suggests to train the model using the methods described in what follows, the \textbf{validation set}, used to fix so-called \textbf{hyperparameters} of the model, and a \textbf{test set}, used at the very end to evaluate the performance of the model on completely fresh data. The metrics used to evaluate performance are called \textbf{errors} or \textbf{losses} depending on the context and can take different forms depending on the system that is considered.
-
-A \emph{generalized linear model} (GLM) assumes that the labels are generated from the data through some probability distribution parametrized by the ground truth weights:
-\begin{equation}
-    y_{\mu} \sim P_{out} (y_{\mu} | X_{\mu i} w^{\star}_i),
-\end{equation}
-where summation over repeated indices is implied from now on. Assuming that the weights are i.i.d. and independent of the data, one can then write for the posterior
+Now, as mentioned, in the supervised learning setting, $X$ alone doesn't contain any information about $w$, and so $P(w|X) = P(w)$. Hence,
 \begin{equation}
     P(w | X,y)
     =
-    \frac{P(y | w,X) P(w|X)}{P(y|X)}
+    \frac{P(y|w,X)P(w)}{P(y|X)}.
+    \label{eq:posterior}
+\end{equation}
+This is the central formula of supervised learning. Its elements inherit the names given above: $P(w | X,y)$ is the posterior, $P(y|w,X)$ the likelihood, $P(w)$ the prior and $P(y|X)$ the evidence. 
+
+\subsection{Linear Models}
+A \emph{generalized linear model} (GLM) assumes that the labels are generated from the data through some probability distribution conditioned by a linear combination of the data and the weights:
+\begin{equation}
+    y_{\mu} \sim P_{out} (y_{\mu} | X_{\mu i} w^{\star}_i),
+\end{equation}
+where summation over repeated indices is implied from now on. Assuming that the weights and samples are i.i.d., one can then write for the posterior
+\begin{equation}
+    P(w | X,y)
+    =
+    \frac{P(y | w,X) P(w)}{P(y|X)}
     \sim
     \prod_{\mu = 1}^{n} P_{out} (y_{\mu} | X_{\mu i} w^{\star}_i)
     \prod_{j = 1}^{d} P(w_j),
@@ -229,7 +234,7 @@ However, for more general loss functions, such as the ones that arise in nonline
 \begin{equation}
     w_i^{t+1} = w_i^{t} - \gamma\frac{\partial\mathcal{L}(w)}{\partial w_i}\bigg |_{w=w^t}.
 \end{equation}
-Formally, this means taylor-expanding the loss to second order, setting $\partial\mathcal{L}/\partial w = 0$. and approximating the second derivative by the constant $1/\gamma$. Visually, it means taking steps in the direction of the minimum of a parabola tangent to $\mathcal{L}$ at $w^t$ scaled by $\gamma$. It turns out that this method, although seemingly very approximate, is very effective when choosing a good learning rate.
+Formally, this means taylor-expanding the loss to second order, setting $\partial\mathcal{L}/\partial w = 0$ and approximating the second derivative by the constant $1/\gamma$. Visually, it means taking steps in the direction of the minimum of a parabola tangent to $\mathcal{L}$ at $w^t$ scaled by $\gamma$. It turns out that this method, although seemingly very approximate, is very effective when choosing a good learning rate.
 
 Standard gradient descent has the disadvantages of 1. being computationally very expensive on large datasets, as the derivative of the loss involves a sum over all samples and 2. that it easily gets stuck in local minima of the loss. To mitigate these issues, variants of GD exist and are more commonly used in practice.
 \subsubsection*{Stochastic Gradient Descent}
@@ -273,7 +278,7 @@ As a simple example, this can be used to fit a polynomial function of degree $p$
 \end{itemize}
 \subsection{Linear Classification}
 \subsubsection*{Two Classes}
-The simplest case of linear classification 2-class classification. A set of points in a $p$-dimensional space are said to be \emph{linearly separable} if there exists at least one hyperplane $\pi \in \mathbb{R}^{p-1}$ that separates the points into two disjunct sets. The hyperplane may be parametrized by a vector $w^{\star} = (w_1^{\star} , w_2^{\star} , \dots , w_p^{\star}, b) \in \mathbb{R}^{p+1}$ and
+The simplest case of linear classification is 2-class classification. A set of points in a $p$-dimensional space are said to be \emph{linearly separable} if there exists at least one hyperplane $\pi \in \mathbb{R}^{p-1}$ that separates the points into two disjunct sets. The hyperplane may be parametrized by a vector $w^{\star} = (w_1^{\star} , w_2^{\star} , \dots , w_p^{\star}, b) \in \mathbb{R}^{p+1}$ and
 \begin{equation}
     z = (z_1 , z_2 , \dots , z_p)
     \in \pi \iff \tilde{X}_i w_i = 0, \text{ where }
@@ -428,19 +433,17 @@ Since the PCA is an orthogonal transformation, the projection is geometrically j
 %where $U_{\mu s}$ is the $s$-th left-singular vector, $V_{i s}$ the $s$-th right-singular vector and $\sigma_s$ the $s$-th singular value of $X$.
 
 \subsection{Bayesian Estimation}
-Previously, the two most common estimators - the ML and MAP - have been introduced. Both of these estimators are \emph{pointwise}, that is, they provide a single value given by the maximum of some probability distribution, which is in general found numerically. Here, a more general framework with a wide range of applications is introduced.
-
-Let $X$ be some data, $\theta$ a parameter we wish to estimate, $\hat{\theta}(X)$ an estimator of this parameter and $L(\theta,\hat{\theta})$ a loss function. A \emph{Bayes estimator} is an estimator that minimizes the \emph{posterior expected loss}, that is,
+Previously, the two most common estimators - the ML and MAP - have been introduced. Both of these estimators are \emph{pointwise}, that is, they provide a single value given by the maximum of some probability distribution, which is in general found numerically. \emph{Bayesian estimation}, on the other hand, is the more general framework where one has access to the whole posterior, and is able to compute statistical quantities from it.
+\begin{itemize}
+    \item In the basic ML/MAP estimators, we define a loss function from the posterior and numerically find its minimum via GD or its variants.
+    \item In Bayes estimation, we get a view of the whole landscape of the posterior (which may include multiple maxima) and based on that, compute quantities, typically moments like the mean, variance and covariance of the parameters. This gives a more complete picture of the information we have about them.
+\end{itemize}
+Let $X$ be some data, $\theta$ a parameter we wish to estimate and $L(\theta,\hat{\theta})$ some loss function. $\hat{\theta}(X)$ is said to be a \emph{Bayes estimator} if it minimizes the \emph{posterior expected loss}, that is,
 \begin{equation}
     \hat{\theta}_{\text{Bayes}} = \underset{\hat{\theta}}{\text{argmin}}\left[
     E(L(\theta,\hat{\theta}) | X)\right],
 \end{equation}
 noting that $E$ represents a conditional expectation over $\theta$ given $X$.
-More informally, one does Bayes estimation when one has access to the whole posterior, in the sense of being able to compute statistical moments (mean, variance,covariance,etc.) on it.
-\begin{itemize}
-    \item In the basic ML/MAP estimators, we define a loss function from the posterior and numerically find its minimum via GD or its variants.
-    \item In Bayes estimation, we get a view of the whole landscape of the posterior (which may include multiple maxima) and based on that, compute quantities, typically the mean and variance of the parameters. This gives a more complete picture of the information we have about the parameters.
-\end{itemize}
 
 \subsubsection*{Minimum Mean Square Error}
 The most common example for the above is by taking the mean square error (MSE) as the loss function. Then, the Bayes estimator is
@@ -467,7 +470,7 @@ The minimum of this expression can be found by takng a formal derivative:
     \hat{\theta} = \int P(\theta | X)\theta d\theta
     &\equiv E\left[ \theta | X\right],
 \end{align}
-since the prior is normalized to 1. Hence, \textbf{the MMSE is just the mean of the posterior}! The discrete form of the above is
+since the prior is normalized to 1. Hence, \textbf{the MMSE is just the mean of the posterior}\footnote{Note that this is only true under certain conditions (see Wikipedia).}! The discrete form of the above is
 \begin{equation}
     \hat{\theta} = E\left[ \theta | X\right]
     =
