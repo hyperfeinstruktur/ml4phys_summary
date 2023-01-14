@@ -18,9 +18,13 @@
 \date{\today}
 
 \begin{document}
-\newgeometry{top=1in,bottom=1in,left=1in,right=1in}
+%\newgeometry{top=1in,bottom=1in,left=1in,right=1in}
 \maketitle
+\tableofcontents
+
+\noindent\textbf{TODO}: Clustering, Boltzman machine, MH algorithm details, Gibbs sampling, ME algorithm details, backpropagation, advanced concepts (last lecture)
 \section{Bayesian Inference, Linear Models and Supervised Learning}
+\subsection{Bayesian Probability and Nomenclature}
 The philosophy of bayesian inference is to improve the a priori information one has about a parameter $\theta$ via observations or data.
 Some basic concepts:
 \begin{itemize}
@@ -60,7 +64,7 @@ The two most common \emph{estimators} for $\theta$ are:
         \end{equation*}
 \end{enumerate}
 Formally, the MLE can be seen as a special case of MAP when the prior is a uniform distribution (i.e. $P(\theta) = const.$). In practice, one can in certain cases assume that with a lot of data, the posterior is dominated by the likelihood, making this a valid assumption.
-\restoregeometry
+%\restoregeometry
 \noindent In the context of \textbf{supervised machine learning}, the following nomenclature will be used:
 The \textbf{data} is represented by a matrix $X_{\mu i} \in \mathbb{R}^{n \times d}$ where $\mu = 1,\dots,n$ indexes the \textbf{sample} and $i = 1,\dots,d$ indexes the \textbf{feature}. The data is then said to be $d$-dimensional. To each data sample corresponds a \textbf{label} $y_{\mu} \in \mathbb{R}^n$. A \textbf{model} establishes a relationship between the data and the labels and is parametrized by a set of \textbf{weights} $w_i \in \mathbb{R}^d$ we wish to learn. Implicitely, one assumes that there is a set of \textbf{ground truth} weights $w_i^{\star}$ that represent the "true" values. The full \textbf{dataset} is in general split into a \textbf{training set}, which is used as the name suggests to train the model using the methods described in what follows, the \textbf{validation set}, used to fix so-called \textbf{hyperparameters} of the model, and a \textbf{test set}, used at the very end to evaluate the performance of the model on completely fresh data. The metrics used to evaluate performance are called \textbf{errors} or \textbf{losses} depending on the context and can take different forms depending on the system that is considered. The information about the parameters $w$ one wants to infer resides in the combination of $X$ and $y$. Thus, applying the definition of conditional probability multiple times, one has
 \begin{equation}
@@ -250,7 +254,7 @@ which involves summing over all samples $\mu$ ($n$ is typically on the order $>1
 \begin{equation}
     \frac{\partial\mathcal{L}(w)}{\partial w_i}
     \approx
-    \frac{1}{|B_t|}\sum_{\mu \in B_t}^{n} \frac{\partial l(y_{\mu}, X_{\mu i} w^{\star}_i)}{\partial w_i}
+    \frac{1}{|B_t|}\sum_{\mu \in \mathcal{B}_t} \frac{\partial l(y_{\mu}, X_{\mu i} w^{\star}_i)}{\partial w_i}
     +
     \lambda \sum_{i=1}^{d} \frac{\partial r(w_i)}{\partial w_i}.
 \end{equation}
@@ -705,7 +709,7 @@ A \emph{multilayer} or \emph{deep} neural network is obtained by "stacking" step
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.75\linewidth]{deep_nn}
-    \caption{Multilayer, fully-connected neural network. The squares in each layer correspond to the neurons, while the lines connecting them represent the weights $W^{(i)}_{a b}$. Each neuron implicitely has an associated nonlinear activation function, which somehow processes the input of the previous layer. \href{https://commons.wikimedia.org/wiki/File:Example_of_a_deep_neural_network.png}{Credit}}
+    \caption{Multilayer, fully-connected neural network. The squares in each layer correspond to the neurons, while the lines connecting them represent the weights $W^{(l)}_{a b}$. Each neuron implicitely has an associated nonlinear activation function, which somehow processes the input of the previous layer. \href{https://commons.wikimedia.org/wiki/File:Example_of_a_deep_neural_network.png}{Credit}}
     \label{fig:nn}
 \end{figure}
 Specifically, this is a representation of a \emph{fully-connected} neural network, i.e. one where each neuron of a given layer influences every neuron in the next layer, and vice-versa. The action of such a network can be expressed as a generalization of Eq. (\ref{eq:slnn_action}),
@@ -724,17 +728,35 @@ Specifically, this is a representation of a \emph{fully-connected} neural networ
     \right),
     \label{eq:mlnn_action}
 \end{equation}
-where $L$ is the total number of layers and $p_i$, $\sigma^{(i)}$ and $W^{(i)}$ are the number of neurons, activation function and weight matrix of the $i$-th layer respectively. An element of the weight matrix $W^{(i)}_{a b}$ of the $i$-th layer gives the weight associated to the connection between the $a$-th neuron of this layer and the $b$-th neuron of the previous layer. The number of \emph{input features} of layer $i$ corresponds to the number of neurons in the previous layer.
+where $L$ is the total number of layers and $p_l$, $\sigma^{(l)}$ and $W^{(l)}$ are the number of neurons, activation function and weight matrix of the $l$-th layer respectively. An element of the weight matrix $W^{(l)}_{a b}$ of the $l$-th layer gives the weight associated to the connection between the $a$-th neuron of this layer and the $b$-th neuron of the previous layer. The number of \emph{input features} of layer $l$ corresponds to the number of neurons in the previous layer.
 Note that the first layer (called \emph{input layer}) "connects" to the data and hence has $d$ input features, while the last layer (called \emph{output layer}) corresponds to the output of the network.
-One further defines, for a given sample $\mu$ and each layer $i$, the \textbf{pre-activations} and \textbf{post-activations} of its neurons:
+One further defines, for a given sample $\mu$ and each layer $l$, the \textbf{pre-activations} and \textbf{post-activations} (or simply activations) of its neurons:
 \begin{align}
-    h^{(i)}_{a_{i+1}\mu} &=
-    \sum_{a_i=1}^{p_i} W^{(i)}_{a_{i+1}a_{i}} t^{(i-1)}_{a_{i}\mu} \\
-    t^{(i-1)}_{a_{i}\mu} &=
-    \sigma^{(i-1)}(h^{(i-1)}_{a_{i}\mu}) \\
-    \text{with } t^{(0)}_{\mu} &= X_{\mu}.
+    h^{(l)}_{a_{l}\mu} &=
+    \sum_{a_{l-1}=1}^{p_{l-1}} W^{(l)}_{a_{l}a_{l-1}} t^{(l-1)}_{a_{l-1}\mu} \\
+    t^{(l)}_{a_{l}\mu} &=
+    \sigma^{(l)}(h^{(l)}_{a_{l}\mu}) \\
+    \text{with } t^{(0)}_{a_0\mu} &= X_{\mu a_0}, \quad (a_0 \equiv i).
 \end{align}
-Intuitively, $t^{(i-1)}_{a_{i}\mu}$ is what comes out of the $a_{i}$-th neuron of the previous layer and $h^{(i)}_{a_{i+1}\mu}$ is what comes into the $a_{i+1}$-th neuron of the current layer.
+Intuitively, when input sample $X_{\mu}$ is fed into the network, $h^{(l)}_{a_{l}\mu}$ is what comes into the $a_l$-th neuron of the layer $l$ (from the neurons of the previous layer) while $t^{(l)}_{a_{l}\mu}$ is what comes out of it.
+Lastly, it is often useful and clearer to read to write Eq. (\ref{eq:mlnn_action}) in matrix form:
+%Intuitively, $t^{(l-1)}_{a_{i}\mu}$ is what comes out of the $a_{l}$-th neuron of the previous layer and $h^{(l)}_{a_{l+1}\mu}$ is what comes into the $a_{l+1}$-th neuron of the current layer. Lastly, it is often useful and clearer to read to write Eq. (\ref{eq:mlnn_action}) in matrix form:
+\begin{equation}
+    f_W(X_{\mu})
+    =
+    \sigma^{(L)}\left(
+        W^{(L)}
+        \sigma^{(L-1)}\left(
+            W^{(L-1)}
+            \ \dots \ 
+            \sigma^{(1)}\left(
+            W^{(1)} X
+            \right)
+        \right)
+    \right),
+    \label{eq:mlnn_action_matrix}
+\end{equation}
+where it is now understood that $W^{(l)}$ describes the connections between layers $l-1$ and $l$.
 
 \subsubsection*{Activation Function and Losses}
 Common examples of activation functions are
@@ -774,7 +796,252 @@ For classification into $K$ classes, the most common one is the cross-entropy lo
 \end{equation}
 with the softmax defined in Eq. (\ref{eq:softmax}). Note that in this context, the output layer $L$ naturally has $K$ neurons, corresponding to the $K$ categories. This is nothing but logistic regression, except that the input to the softmax is the activation of the output layer of the neural net.
 
-\subsubsection*{Backpropagation}
+\subsection{Backpropagation Algorithm}
+The training of a NN is performed by minimizing the loss function, like for the linear models of the beginning. This is usually done through some form of SGD,
+\begin{equation}
+    W^{(l)}_{a b} (t+1)
+    =
+    W^{(l)}_{a b} (t)
+    - \gamma
+    \sum_{\mu \in \mathcal{B}_t}
+    \frac{\partial l(y_{\mu}, f_W(X_{\mu}))}{\partial W^{(l)}_{a b}}
+\end{equation}
+Thus, we need the derivative of the loss function w.r.t all its parameters, that is, the weights. Naively computing these individually is highly inefficient, as there would be a lot of redundancy in the computations. \emph{Backpropagation} is an efficient algorithm (scales in linear time) that makes use of the chain rule and the fact that a NN is a \emph{directed graph}, where each node is influenced directly only by its incoming edges that all come from the layer before it, and so a recursive strategy can be applied.
+
+%in essence, the action of a neural net is just a combination of activation functions and affine transformations. Intuitively, the idea behind backpropagation is to see that ultimately every neuron is influenced only by the previous layer, which is influenced by the one before, all the way back to layer 0.
+
+\subsubsection*{A very simple example}
+
+To get an intuitive feeling for the algorithm, let's look at an overly simplified network (adapted from the 3Blue1Brown video): one with 4 layers, each with only one neuron (1 input, 2 hidden and 1 output layer). This network has 3 (scalar) weights $w^{(l)}, l=1,2,3$. The action of this network on a sample $X$ is
+\begin{equation}
+    f_W(X)
+    =
+    \sigma^{(L)}\left(
+        w^{(L)}\sigma^{(L-1)}\left(
+            w^{(L-1)}\sigma^{(L-2)}\left(
+                X
+            \right)
+        \right)
+    \right),
+\end{equation}
+with $L=3$. We call the post-activation of the neuron in the $l$-th layer $t^{(l)} = \sigma^{(l)}(h^{(l)})$ and the pre-activation $h^{(l)} = w^{(l-1)} t^{(l-1)}$.
+Applying the chain rule,
+\begin{align}
+    \frac{\partial f_W}{\partial w^{(L)}}
+    &=
+    \frac{\partial h^{(L)}}{\partial w^{(L)}}
+    \frac{\partial t^{(L)}}{\partial h^{(L)}}
+    \frac{\partial f_W}{\partial t^{(L)}}
+    =
+    t^{(L-1)} \sigma'^{(L)} (h^{(L)}) \\
+    \frac{\partial f_W}{\partial t^{(L-1)}}
+    &=
+    \frac{\partial h^{(L)}}{\partial t^{(L-1)}}
+    \frac{\partial t^{(L)}}{\partial h^{(L)}}
+    \frac{\partial f_W}{\partial t^{(L)}}
+    =
+    w^{(L)} \sigma'^{(L)} (h^{(L)}).
+\end{align}
+Since $\partial f_W / \partial t^{(L)} = 1$. But now,
+\begin{align}
+    \frac{\partial f_W}{\partial w^{(L-1)}}
+    &=
+    \frac{\partial h^{(L-1)}}{\partial w^{(L-1)}}
+    \frac{\partial t^{(L-1)}}{\partial h^{(L-1)}}
+    \frac{\partial f_W}{\partial t^{(L-1)}}
+    =
+    t^{(L-2)}\sigma'^{(L-1)}(h^{(L-1)})
+    \frac{\partial f_W}{\partial t^{(L-1)}} \\
+    \frac{\partial f_W}{\partial t^{(L-2)}}
+    &=
+    \frac{\partial h^{(L-1)}}{\partial t^{(L-2)}}
+    \frac{\partial t^{(L-1)}}{\partial h^{(L-1)}}
+    \frac{\partial f_W}{\partial t^{(L-1)}}
+    =
+    w^{(L-1)}\sigma'^{(L-1)}(h^{(L-1)})
+    \frac{\partial f_W}{\partial t^{(L-1)}},
+\end{align}
+where the last quantity in both equations is already known! Applying this idea repeatedly, starting from the \emph{back} of the network and moving to the \emph{front}, all derivatives can be computed by the same recursive formula. Finally since,
+\begin{equation}
+    \frac{\partial l(y_{\mu}, f_W(X_{\mu}))}{\partial w^{(l)}}
+    =
+    \frac{\partial l(y_{\mu}, f_W(X_{\mu}))}{\partial f_W}
+    \frac{\partial f_W}{\partial w^{(l)}}
+    \quad \quad \left((y_{\mu,X_{\mu}}) \text{ fixed}\right),
+\end{equation}
+the recursive strategy of above immediately yields the derivatives required by the GD algorithm ($\partial l / \partial f_W$ is analytical, e.g. $=2(y_{\mu} - f_W(X_{\mu}))$ for the square loss).
+
+This can be generalized straightforwardly to more complex networks: the only thing that changes is that now, the activation of a neuron has an impact on \emph{all} the neurons in the following layer, and so on, meaning that these contributions have to be added up. Formally, going back to the index notation,
+\begin{align}
+    \frac{\partial f_W}{\partial w^{(L)}_{a_L a_{L-1}}}
+    &=
+    \frac{\partial h^{(L)}_{a_L}}{\partial w^{(L)}_{a_L a_{L-1}}}
+    \frac{\partial t^{(L)}_{a_L}}{\partial h^{(L)}_{a_L}}
+    \frac{\partial f_W}{\partial t^{(L)}_{a_L}}
+    = t^{(L-1)}_{a_{L-1}} \sigma'^{(L)} (h^{(L)}_{a_L})
+     \\
+    \frac{\partial f_W}{\partial t^{(L-1)}_{a_{L-1}}}
+    &=
+    \sum_{a_L=1}^{p_L}
+    \frac{\partial h^{(L)}_{a_L}}{\partial t^{(L-1)}_{a_{L-1}}}
+    \frac{\partial t^{(L)}_{a_L}}{\partial h^{(L)}_{a_L}}
+    \frac{\partial f_W}{\partial t^{(L)}_{a_L}}
+    =
+    \sum_{a_L=1}^{p_L}
+    W^{(L)}_{a_{L}a_{L-1}}
+    \sigma'^{(L)} (h^{(L)}_{a_L})
+\end{align}
+Note that if in the last layer there are $a_L$ neurons, then $f_W = (t^{(L)}_{a_1},\dots,t^{(L)}_{a_L}) \in \mathbb{R}^{a_L}$ and so $\partial f_W / \partial t^{(L)}_{a_L} = \vec{e}_{a_L}$. For the next layer,
+\begin{align}
+    \frac{\partial f_W}{\partial w^{(L-1)}_{a_{L-1} a_{L-2}}}
+    &=
+    \frac{\partial h^{(L-1)}_{a_{L-1}}}{\partial w^{(L-1)}_{a_{L-1} a_{L-2}}}
+    \frac{\partial t^{(L-1)}_{a_{L-1}}}{\partial h^{(L-1)}_{a_{L-1}}}
+    \frac{\partial f_W}{\partial t^{(L-1)}_{a_{L-1}}}
+    = t^{(L-2)}_{a_{L-2}} \sigma'^{(L-1)} (h^{(L-1)}_{a_{L-1}})
+    \frac{\partial f_W}{\partial t^{(L-1)}_{a_{L-1}}}
+     \\
+    \frac{\partial f_W}{\partial t^{(L-1)}_{a_{L-1}}}
+    &=
+    \sum_{a_{L-1}=1}^{p_{L-1}}
+    \frac{\partial h^{(L-1)}_{a_{L-1}}}{\partial t^{(L-1)}_{a_{L-1}}}
+    \frac{\partial t^{(L-1)}_{a_{L-1}}}{\partial h^{(L-1)}_{a_{L-1}}}
+    \frac{\partial f_W}{\partial t^{(L-1)}_{a_{L-1}}}
+    =
+    \sum_{a_{L-1}=1}^{p_{L-1}}
+    W^{(L-1)}_{a_{L-1}a_{L-2}}
+    \sigma'^{(L-1)} (h^{(L-1)}_{a_{L-1}})
+    \frac{\partial f_W}{\partial t^{(L-1)}_{a_{L-1}}}
+\end{align}
+And again, the last term in each equation is known from the previous layer, so we're done! If we know all the post/pre activations of the neurons for a given sample and the functional form of the derivative of the activation functions, we can compute all the derivatives demanded by the GD process. More algorithmically:
+
+
+\begin{enumerate}
+    \item \textbf{For every $X_{\mu}$ in $\mathcal{B}_t$, do:}
+    \begin{enumerate}
+        \item \textbf{"Forward Pass":}
+        Feed $X_{\mu}$ into the network. Along the way (in the forward direction of the signal), layer by layer, store the pre and post activations $h^{(l)}_{a_l}$ and $t^{(l)}_{a_l}$ of the neurons in memory.
+        \item \textbf{"Backward Pass":}
+        Starting from the last layer $L$ and going backwards, compute the terms
+        \begin{equation}
+            \epsilon_{a_{l} a_{l-1}}
+            =
+            \sigma'^{(l)} (h^{(l)}_{a_l})
+            \sum_{a_l=1}^{p_l}
+            w^{(L)}_{a_L a_{L-1}}
+            \epsilon_{a_{l-1} a_{l-2}}
+        \end{equation}
+        recursively, by storing them in memory at each layer.
+        \item \textbf{Compute Derivatives:}
+        Compute the relevant derivatives, given by
+        \begin{equation}
+            \frac{\partial l(y_{\mu}, f_W(X_{\mu}))}{\partial W^{(l)}_{a b}}
+            =
+        \end{equation}
+    \end{enumerate}
+    \item \textbf{Update the weights by the GD method:}
+    \begin{equation}
+        W^{(l)}_{a b} (t+1)
+            =
+            W^{(l)}_{a b} (t)
+            - \gamma \sum_{\mu \in \mathcal{B}_t}
+    \end{equation}
+\end{enumerate}
 
 \subsection{Convolutional Neural Networks}
+When designing a NN for image analysis (where typically $X_{\mu i}$ represents the $i$-th pixel of sample $\mu$), the fully connected architecture has 2 undesirable properties:
+\begin{itemize}
+    \item It is invariant under permutation of the pixels $i$ (as is obvious from Eq. \ref{eq:mlnn_action}). This is very much unlike the human visual system, where \emph{locality} (the position of features like eyes, nostrils,etc. relative to each other) is key to interpret an image.
+    \item Its not \emph{translationally invariant}: shifting an image in some direction is interpreted as a different input, which it shouldn't be.
+\end{itemize}
+Convolutional neural networks (CNN) are the go-to architecture for interpreting visual imagery, as they address both these issues. Since we are dealing with images, it is useful to visualize the layers of a CNN as 2D grids of neurons rather than rows as above. Interesting side note (from Wikipedia):
+\begin{quotation}
+    Convolutional networks were inspired by biological processes in that the connectivity pattern between neurons resembles the organization of the animal visual cortex. Individual cortical neurons respond to stimuli only in a restricted region of the visual field known as the receptive field. The receptive fields of different neurons partially overlap such that they cover the entire visual field.
+\end{quotation}
+A CNN contains new types of layers in addition to the fully-connected ones.
+\subsubsection*{Pooling Layers}
+A \emph{pooling} (or \emph{downsampling}) layer reduces the dimensionality of its input by combining nearby pixels in a nonlinear fashion. This helps with translational invariance. The simplest example is applying a filter of fixed size that grids up the input image and, in each grid, outputs either the maximum value ("max pooling") or the average ("average pooling"). An example of a 2x2 max pooling layer is shown in Fig. (\ref{fig:pooling})
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.47\linewidth]{downsampling}
+    \caption{Illustration of a 2x2 max-pooling layer, image taken from the lecture notes}
+    \label{fig:pooling}
+\end{figure}
+
+\subsubsection*{Convolutional Layers}
+A convolutional layer performs a \emph{convolution} on its input signal and is the core component of a CNN. See the \href{https://youtu.be/KuXjwB4LzSA}{3Blue1Brown video} on the subject for an intuitive explanation of what a convolution is.
+
+In a typical CNN, each layer contains a number $z_l$ of \textbf{channels}. The pre-activation data of a given layer then has 3 dimensions: $x_l \times y_l \times z_l$, where $x_l$ and $y_l$ are the image size in 2D (thus, $p_l = x_l\cdot y_l$).
+In the input data $X$, these channels may typically be the RGB color channels, but as the data is processed by the network, it becomes a more abstract concept. The key idea is that each channel contains information about some specific aspect of the image, like edges, high density regions, etc.
+A \textbf{convolutional layer} contains a number $N_l$ of \textbf{filters} that are applied across the whole input data (i.e. all pixels and all channels), where "applied" means are convolved with. The result of the convolution is passed through the layer's activation function and so the post-activation typically has $z_l \cdot N_l$ channels. Technically, a convolution filter is specified by a \textbf{convolution kernel}, which in this context is a matrix whose size gives the \textbf{receptive field} of the filter. The kernel is moved along the input data with a given \textbf{stride} (step size). The size of the receptive field together with the stride gives the size of the output data. \href{https://en.wikipedia.org/wiki/Kernel\_(image_processing)}{This page} contains a small list of examples of what a convolution filter/kernel does to image data. The key point is that in a CNN, the weights specifying the kernel are not defined in advance, but are \emph{learned}. This means that the network will, on its own, form filters that recognize certain distinct aspects of the image.
+
+A typical CNN is formed by a sequence of convolution and pooling layers and the output of the last pooling is flattened and passed to one or more fully connected layers that produce the final output. An example is given in Fig. (\ref{fig:CNN})
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.75\linewidth]{Typical_cnn}
+    \caption{Schematic view of a multilayer, convolutional neural network. The image data is passed through multiple convolution/pooling layers before being fed in a fully connected network that produces the final output. \href{https://commons.wikimedia.org/wiki/File:Typical_cnn.png}{(Credit)}}
+    \label{fig:CNN}
+\end{figure}
+
+\noindent Two additional concepts were mentioned in the lecture:
+\begin{itemize}
+    \item \textbf{Dropout}: A technique where at each training iteration, each neuron has some probability for its output to be randomly set to 0. This has been found to avoid overfitting.
+    \item \textbf{Padding}: A convolution has by construction a special behaviour at the boundaries of the image. To mitigate this issue, the data can be padded with a few lines of pixels (depending on the size of the convolution kernels) set to some value.
+\end{itemize}
+
+\subsubsection*{Examples of CNNs}
+To make the ideas discussed above more concrete, the architectures of two famous CNNs (summarized in Fig. \ref{fig:lenet_alexnet}) are presented here.
+\begin{itemize}
+    \item \textbf{LeNet}: Built in the 90s for the MNIST (hand written, 0-10 digits) dataset. Each sample is a B\&W image (1 channel) of 28 by 28 pixels, and so the input data has dimensions $28\times 28\times 1$. A first convolutional layer with 6 filters, each described by a $5\times 5$ kernel and padding of 2 , is applied, producing a $28\times 28\times 6$ output fed through a sigmoid activation function. The post-activation is then downsampled to $14\times 14$ with a $2\times 2$ average pool. A second convolution layer is applied, which has 16 filters that are applied in a nontrivial way to the 6 input channels (see wiki) to produce a $10\times 10\times 16$ output, again average-pool-downsampled to $5\times 5\times 16$ before being fed in 3 fully connected layers, the last of which has 10 neurons corresponding to the 10 categories (digits).
+    \item \textbf{AlexNet}: Major breaktrough in the field, built in 2012 for the ImageNet dataset, where the images are RBG and 224 by 224 pixels and correspond to 1000 different categories of objects, so the input data has dimension $224\times 224\times 3$ and the output layer has 1000 neurons. There are 5 convolutional layers with different sizes and padding, and in the center of the network the data runs in up to 384 channels. ReLu activation functions are used and in the fully connected part at the end, a dropout scheme with 50\% probability is applied.
+\end{itemize}
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.7\linewidth]{lenet_alexnet}
+    \caption{Network architecture of the LeNet and AlexNet CNNs. LeNet was designed for MNIST and dates back to the 90s, while AlexNet works on the ImageNet dataset and is from 2012. \href{https://commons.wikimedia.org/wiki/File:Comparison\_image\_neural\_networks.svg}{(Credit)}}
+    \label{fig:lenet_alexnet}
+\end{figure}
+
+\subsection{Advanced Concepts and Ongoing Research}
 \end{document}
+
+
+A \emph{convolution kernel} or filter is a matrix $\omega$ that defines a 2D-convolution on an image matrix. See \href{https://en.wikipedia.org/wiki/Kernel\_(image_processing)}{this page} and watch .
+
+
+
+The loss of the network for a single training data-label sample (y,X) (where we omit the index $\mu$) can be written as
+\begin{equation}
+    l\left[y,\sigma^{(L)}\left(
+        W^{(L)}
+        \sigma^{(L-1)}\left(
+            W^{(L-1)}
+            \ \dots \ 
+            \sigma^{(1)}\left(
+            W^{(1)} X
+            \right)
+        \right)
+    \right)\right].
+\end{equation}
+Applying the chain rule and using the Hadamard product $\circ$ (the elementwise matrix multiplication), one can write the derivative
+\begin{equation}
+    \frac{d l}{d x}
+    =
+    \frac{d l}{t^{(L)}} \circ
+    \frac{d t^{(L)}}{d h^{(L)}} \cdot \frac{d h^{(L)}}{d t^{(L-1)}}
+    \circ
+    \frac{d t^{(L-1)}}{dh^{(L-1)}} \cdot \frac{dh^{(L-1)}}{dt^{(L-2)}}
+    \ \dots \ 
+    \frac{d t^{(1)}}{dh^{(1)}} \cdot \frac{dh^{(1)}}{d X}
+\end{equation}
+
+
+Imagining that there is only a single sample, the loss is some function
+$$\mathcal{L} \equiv \mathcal{L}(y,f_W(X))$$
+and so the derivative of the loss w.r.t some quantity $u$ is
+\begin{equation}
+    \frac{\partial \mathcal{L}}{\partial u}
+    =
+    \frac{\partial \mathcal{L}}{\partial f_W}
+    \frac{\partial f_W}{\partial u}.
+\end{equation}
