@@ -13,7 +13,7 @@
 \geometry{top=1in,bottom=1in,left=1in,right=1in}
 
 
-\title{PHYS-467: Machine Learning for Physicists\\\Large Lecture Summary}
+\title{PHYS-467: Machine Learning for Physicists\\\Large Personal Lecture Notes}
 \author{Patrick Hirling}
 \date{\today}
 
@@ -22,10 +22,10 @@
 \maketitle
 \tableofcontents
 
-\noindent\textbf{TODO}: Clustering, Boltzman machine, MH algorithm details, Gibbs sampling, ME algorithm details, advanced concepts (last lecture)
+\noindent\textbf{TODO}: Gibbs sampling, expectation minimization alg, advanced concepts (last lecture), maybe a bit more on kernels
 \section{Bayesian Inference, Linear Models and Supervised Learning}
-\subsection{Bayesian Probability and Nomenclature}
-The philosophy of bayesian inference is to improve the a priori information one has about a parameter $\theta$ via observations or data.
+\subsection{Bayesian Probability and Terminology}
+The philosophy behind bayesian inference is to improve the a priori information one has about a parameter $\theta$ via observations or data.
 Some basic concepts:
 \begin{itemize}
     \item Conditional probability:
@@ -65,8 +65,9 @@ The two most common \emph{estimators} for $\theta$ are:
 \end{enumerate}
 Formally, the MLE can be seen as a special case of MAP when the prior is a uniform distribution (i.e. $P(\theta) = const.$). In practice, one can in certain cases assume that with a lot of data, the posterior is dominated by the likelihood, making this a valid assumption.
 %\restoregeometry
+\subsubsection*{Supervised Learning}
 \noindent In the context of \textbf{supervised machine learning}, the following nomenclature will be used:
-The \textbf{data} is represented by a matrix $X_{\mu i} \in \mathbb{R}^{n \times d}$ where $\mu = 1,\dots,n$ indexes the \textbf{sample} and $i = 1,\dots,d$ indexes the \textbf{feature}. The data is then said to be $d$-dimensional. To each data sample corresponds a \textbf{label} $y_{\mu} \in \mathbb{R}^n$. A \textbf{model} establishes a relationship between the data and the labels and is parametrized by a set of \textbf{weights} $w_i \in \mathbb{R}^d$ we wish to learn. Implicitely, one assumes that there is a set of \textbf{ground truth} weights $w_i^{\star}$ that represent the "true" values. The full \textbf{dataset} is in general split into a \textbf{training set}, which is used as the name suggests to train the model using the methods described in what follows, the \textbf{validation set}, used to fix so-called \textbf{hyperparameters} of the model, and a \textbf{test set}, used at the very end to evaluate the performance of the model on completely fresh data. The metrics used to evaluate performance are called \textbf{errors} or \textbf{losses} depending on the context and can take different forms depending on the system that is considered. The information about the parameters $w$ one wants to infer resides in the combination of $X$ and $y$. Thus, applying the definition of conditional probability multiple times, one has
+The \textbf{data} is represented by a matrix $X_{\mu i}$ where $\mu = 1,\dots,n$ indexes the \textbf{sample} and $i = 1,\dots,d$ indexes the \textbf{feature}. The data is then said to be $d$-dimensional. To each data sample corresponds a \textbf{label} $y_{\mu}$. A \textbf{model} establishes a relationship between the data and the labels and is parametrized by a set of \textbf{weights} $w_i$ we wish to learn. Implicitely, one assumes that there is a set of \textbf{ground truth} weights $w_i^{\star}$ that represent the "true" values. The full \textbf{dataset} is in general split into a \textbf{training set}, which is used as the name suggests to train the model using the methods described in what follows, the \textbf{validation set}, used to fix so-called \textbf{hyperparameters} of the model, and a \textbf{test set}, used at the very end to evaluate the performance of the model on completely fresh data. The metrics used to evaluate performance are called \textbf{errors} or \textbf{losses} depending on the context and can take different forms depending on the system that is considered. The information about the parameters $w$ one wants to infer resides in the combination of $X$ and $y$. Thus, applying the definition of conditional probability multiple times, one has
 \begin{equation}
     P(w | X,y) = \frac{P(w,X,y)}{P(X,y)}
     =
@@ -158,7 +159,8 @@ called \emph{$L_2$-regularization}. The full loss is
     +
     \lambda \sum_{i=1}^{d} w_i^2.
 \end{equation}
-\underline{Alternative Derivation}
+\\ \\
+\noindent\underline{Alternative Derivation}
 
 \noindent Without the GLM framework, one typically arrives at the ridge or least squares regression model by the following argument: Assume that the labels $y$ can be described by a linear relationship between the data and a set of ground-truth weights and an additive gaussian noise,
 \begin{equation}
@@ -537,7 +539,19 @@ Under certain conditions, the Markov chain has an \emph{equilibrium distribution
 \end{equation}
 \textbf{The idea of a MCMC method} is to construct a Markov chain such that its equilibrium distribution is the distribution one wants to sample. In practice, one initializes the algorithm to some (often random) configuration $S^{(0)}$ and then evolves the chain. After a \emph{burn-in} or \emph{thermalization} time $T^{\star}$, one assumes the chain to have reached its equilibrium distribution and starts collecting the values $S^{(t>T^{\star})}$ as samples of the desired distribution.
 \subsubsection*{The Metropolis-Hastings Algorithm}
-The MH algorithm is a concrete example of a MCMC method. \dots
+The MH algorithm is a concrete example of a MCMC method that can be used to sample from a discrete or continuous probability distribution. In the lecture, we saw it in the special case of binary random variables of the form $S_i = \pm 1, i=1,\dots,d$ (e.g. spins) that follow some distribution $P(S)$ In this case, the MH algorithm works as follows:
+\begin{enumerate}%
+    %^{(0)}
+    \item Initialize $S$ at random.
+    \item Pick an index $k\in \{1,\dots,d\}$ randomly and define $S'$ as $S$ with the $k$-th index flipped. $S'$ is called the \emph{candidate}.
+    \item Compute
+    $$\eta = \min\left(1,\frac{P(S')}{P(S)}\right)$$
+    \item Set $S\leftarrow S'$ ("accept" $S'$) with probability $\eta$
+    \item Repeat (2), (3) and (4) $T$ times
+\end{enumerate}
+This yields a "chain" $\{S^{(t)}\}_{t=0}^{T}$. The elements with $t>T^{\star}$ are samples of $P$. In practice, the MH algorithm only thermalizes in certain situations, and $T^{\star}$ depends very strongly on the system and its parameters.
+
+The algorithm can be generalized to distributions of non-binary random variables, as well as continuous ones. The key difference is in step 2: above, we essentially generate a candidate $S'$ from a probability distribution that is conditioned on the current state $S$. This distribution, that wasn't explicitely given here because it was simpler to just say "flip some index $k$" is in general called the \emph{proposal distribution}. When MH is used to sample from a continuous distribution, the proposal distribution is typically a gaussian centered on the current state.
 \subsubsection*{Gibbs Sampling}
 Another common MCMC method is the so-called Gibbs sampler. \dots
 
@@ -552,6 +566,7 @@ A slightly different task is finding minima/maxima when the considered distribut
 \end{equation}
 where $Z$ is the partition function (which acts as a normalization), $T$ is the temperature, $H$ the hamiltonian and $S$ a vector characterizing the state of the system (e.g. a vector of Ising spins). One might want to find the ground states of this system (i.e. those that maximize $P(S)$) when the temperature is very low, $T\rightarrow 0$. If one simply sets $T$ close to 0, initializes $S$ at random and starts sampling $P$ to find its maximum, the chain will tend to converge very slowly. A better method, known as \emph{annealing}, is to start the chain at high temperature and decrease it at every step of the MCMC algorithm. This way, the system is simulated while cooling down gradually, and it becomes easier to find the ground state.
 \subsubsection*{Expectation-Maximization (ME) Algorithm}
+\label{sec:EM}
 Suppose now that the statistical model depends both on a set of latent variables $S$ and on an unknown \emph{parameter} $\rho$. In order to infer $\rho$ from the data $X$ and the latent variables $S$, a special algorithm is needed, read \href{https://en.wikipedia.org/wiki/Expectation-maximization_algorithm#Introduction}{this Wikipedia paragraph} for a nice explanation as to why. The idea is that, using the law of total probability, one can write
 \begin{equation}
     P(\rho | X)
@@ -574,6 +589,161 @@ as a "likelihood". However, the term $P(X|S,\rho)$ depends on $\rho$, the parame
 %\subsection{Clustering Problems}
 %\subsection{Generative Models and the Boltzmann Machine}
 
+\subsection{Clustering}
+When provided with some unlabeled data $X$, an interesting task can be to group it in $k$ categories or \emph{clusters}, based on a notion of proximity defined by some metric. Provided with such a metric, one can then construct a loss function that gives a sense of how well the data has been grouped.
+
+A common model choice is the \emph{gaussian mixture model}, where one assumes that the data is distributed according to
+\begin{equation}
+    X_{\mu i}
+    =
+    \frac{1}{\sqrt{d}}
+    \sum_{a=1}^{k}
+    v_{\mu a}^{\star}u_{a i}^{\star} + \xi_{\mu i},
+\end{equation}
+where $v_{\mu a}$ is the one-hot encoding of sample $\mu$ (i.e. it is equal to 1 if $\mu$ belongs to cluster $a$ and 0 otherwise), $u_{a i}$ gives the ground truth center of the clusters and $\xi_{\mu i} \sim \mathcal{N}(0,\sigma^2)$ (iid for $i$ and $\mu$, this doesn't have to be the case, see note below) is the gaussian noise around the cluster centers. Intuitively, one assumes that to generate the data, $k$ points in $\mathbb{R}^d$ are selected, and then $n$ points are randomly associated to a center and placed according to a $d$-dimensional gaussian centered at the cluster center. The distributions of 1. the cluster centers $P(u_{a i})$ and 2. the association of a point to a center $P(v_{\mu a})$ are left open, but are typically also gaussian or uniform. The likelihood is then
+\begin{equation}
+    P(X|v,u)
+    \sim
+    \prod_{i=1}^{d}
+    \prod_{\mu=1}^{n}
+    e^{-\frac{1}{2\sigma^2}\left(X_{\mu i} - \sum_{a=1}^{k}
+    v_{\mu a}u_{a i}\right)^2},
+\end{equation}
+and so the MLE loss (normalized negative log-likelihood) is
+\begin{equation}
+    \mathcal{L}
+    =
+    \frac{1}{n}
+    \sum_{i=1}^{d}
+    \sum_{\mu=1}^{n}
+    \left(X_{\mu i} - \sum_{a=1}^{k}
+    v_{\mu a}u_{a i}\right)^2.
+\end{equation}
+A simple technique to minimize this loss function is the \emph{k-means} algorithm, see section 9.1.2 of the lecture notes. The model described like this is a simple isotropic case of the gaussian mixture model, due to the i.i.d nature of the noise variable $\xi_{\mu i}$. In general, one might instead take $\xi_{\mu} \sim \mathcal{N}(\mathbf{0},\mathbf{\Sigma})$ with $\mathbf{\Sigma} \in \mathbb{R}^{d\times d}$ a generic covariance matrix. Finally, mixture models are a typical use-case of the EM algorithm described in (\ref{sec:EM}); the cluster a datapoint belongs to can be encoded in an additional \emph{latent} variable, while the centers and variances of the clusters are the parameters to be infered.
+
+\subsubsection*{Sidenote: Discriminative vs. Generative Models}
+The discussion of clustering above seems quite close to the topic of classification, in particular the multinomial logistics regression discussed previously. The subtle difference between the two illustrates the following notion
+\begin{itemize}
+    \item A \textbf{generative model} (like the gaussian mixture model) asks the question of how the data was generated. By assuming a statistical model and learning its parameters, it can then $<3$ use this information to determine which classification is the most likely. Technically, it tries to learn $P(X,y)$ and then determines $P(y|X)$ from it.
+    \item A \textbf{discriminative model} (like logistic regression) simply tries to classify the data directly, without caring about how it was generated. In other words, it tries to determine $P(y|X)$ directly.
+\end{itemize}
+A crucial difference between the two types of methods is that, as the name suggests, a generative model can be used to generate new instances of data that resemble the training samples. The following section describes another such model.
+
+\subsection{Boltzmann Machine}
+The Boltzmann machine is a spin glass model that learns from binary, $d$-dimensional data $X_{\mu}\in \{\pm 1\}^d$ to generate new instances that follow the same distribution. One defines a hamiltonian
+\begin{equation}
+    \mathcal{H}_{h,J}(x)
+    =
+    -\left[
+        \sum_{i<j} J_{ij} x_ix_j
+        +
+        \sum_{i=1}^{d} h_ix_i
+    \right]
+\end{equation}
+and the associated Boltzmann distribution
+\begin{equation}
+    p_{h,J}(x)
+    =
+    \frac{1}{Z}
+    e^{-\mathcal{H}_{h,J}(x)}.
+\end{equation}
+The goal of the Boltzmann machine is to determine $h$ and $J$ from samples $X_{\mu}$ and then be able to generate new instances $x$ through the above distribution. The choice of a Boltzmann distribution comes from the maximum entropy principle using the constraints
+\begin{align}
+    \frac{1}{n}\sum_{\mu=1}^{n}
+    X_{\mu i}
+    &\equiv \mu_i
+    \overset{!}{=}
+    \langle x_i \rangle_p, \\
+    \frac{1}{n}\sum_{\mu=1}^{n}
+    X_{\mu i} X_{\mu j}
+    &\equiv  \Sigma_{ij} 
+    \overset{!}{=}
+    \langle x_ix_j \rangle_p,
+    \label{eq:boltzmannconstr}
+\end{align}
+namely that the empirical mean and covariance matches the one of $p(x)$.
+The likelihood associated to $p$ is
+\begin{equation}
+    P(X|h,J)
+    =
+    \prod_{\mu=1}^{n}
+    p_{h,J}(X_{\mu})
+    =
+    \frac{1}{Z(h,J)^n}
+    e^{-\sum_{\mu=1}^{n}\mathcal{H}_{h,J}(X_{\mu})}
+\end{equation}
+and so the maximum likelihood loss is
+\begin{equation}
+    \mathcal{L}(h,J)
+    =
+    \frac{1}{n}
+    \sum_{\mu=1}^{n}\mathcal{H}(X_{\mu})
+    +
+    \ln{Z(h,J)}.
+\end{equation}
+Note that
+\begin{equation}
+    Z(h,J)
+    =
+    \sum_{x\in\mathcal{X}}
+    e^{-\mathcal{H}_{h,J}(x)}.
+\end{equation}
+Now, taking the derivatives relevant for GD:
+\begin{align}
+    \frac{\partial \mathcal{L}}{\partial h_k}
+    &=
+    \frac{1}{n}
+    \sum_{\mu=1}^{n}
+    \frac{\partial \mathcal{H}}{\partial h_k}
+    -
+    \frac{1}{Z}
+    \sum_{x\in\mathcal{X}}
+    e^{-\mathcal{H}_{h,J}(x)}
+    \frac{\partial \mathcal{H}}{\partial h_k} \\
+    &=
+    -\frac{1}{n}
+    \sum_{\mu=1}^{n}
+    X_{\mu k}
+    +
+    \frac{1}{Z}
+    \sum_{x\in\mathcal{X}}
+    e^{-\mathcal{H}_{h,J}(x)}
+    x_k \\
+    &=
+    \langle x_i \rangle_p -\mu_k, \\
+    % =======
+    \frac{\partial \mathcal{L}}{\partial J_{kl}}
+    &=
+    \frac{1}{n}
+    \sum_{\mu=1}^{n}
+    \frac{\partial \mathcal{H}}{\partial J_{kl}}
+    -
+    \frac{1}{Z}
+    \sum_{x\in\mathcal{X}}
+    e^{-\mathcal{H}_{h,J}(x)}
+    \frac{\partial \mathcal{H}}{\partial J_{kl}} \\
+    &=
+    -\frac{1}{n}
+    \sum_{\mu=1}^{n}
+    X_{\mu k}X_{\mu l}
+    +
+    \frac{1}{Z}
+    \sum_{x\in\mathcal{X}}
+    e^{-\mathcal{H}_{h,J}(x)}
+    x_k x_l \\
+    &=
+    \langle x_k x_l \rangle_p-\Sigma_{kl},
+\end{align}
+and so the condition $\nabla \mathcal{L} = 0$ is nothing but the constraints (Eq. \ref{eq:boltzmannconstr}). The full GD algorithm can be compactly written as
+\begin{align}
+    h_k^{t+1}
+    &=
+    h_k^{t} -\gamma (\langle x_i \rangle_p -\mu_k), \\
+    J_{kl}^{t+1}
+    &=
+    J_{kl}^{t} -\gamma (\langle x_k x_l \rangle_p-\Sigma_{kl}),
+\end{align}
+where it is understood that the means $\langle\cdot\rangle_p$ are taken with respect to $h^{t},J^{t}$. How are these means computed? You guessed it: MCMC!
 \section{Features, Kernel Methods and Neural Networks}
 \subsection{Feature Maps and Kernels}
 Each sample $\mu = 1,\dots,n$ of data $X_{\mu} \in \mathbb{R}^d$ was considered so far to have $d$ features, represented by $X_{\mu} = (x_1,\dots,x_d)$. An \emph{added feature} is any (possibly nonlinear) function $f: \mathbb{R}^d \rightarrow \mathbb{R}$ of the existing features that creates a new one. Examples could be $f_1(x_1,x_2) = x_1x_2$, $f_2(x_1,x_2) = x_1^2 + x_2^2$, etc. A \emph{feature map} is a function $\phi: \mathbb{R}^d \rightarrow \mathbb{R}^p$ that transforms the data to a new feature space, usually by adding an arbitrary number of new ones. For example,
@@ -796,7 +966,7 @@ For classification into $K$ classes, the most common one is the cross-entropy lo
 \end{equation}
 with the softmax defined in Eq. (\ref{eq:softmax}). Note that in this context, the output layer $L$ naturally has $K$ neurons, corresponding to the $K$ categories. This is nothing but logistic regression, except that the input to the softmax is the activation of the output layer of the neural net.
 
-\subsection{Backpropagation Algorithm}
+\subsection{Backpropagation and Training}
 The training of a NN is performed by minimizing the loss function, like for the linear models of the beginning. This is usually done through some form of SGD,
 \begin{equation}
     W^{(l)}_{a b} (t+1)
@@ -924,10 +1094,10 @@ Again, the derivative $\partial l_{\mu} / t^{(L)}_{a_L}$ follows from the functi
     = t^{(L-2)}_{a_{L-2}} \sigma'^{(L-1)} (h^{(L-1)}_{a_{L-1}})
     \frac{\partial l_{\mu}}{\partial t^{(L-1)}_{a_{L-1}}}
      \\
-    \frac{\partial l_{\mu}}{\partial t^{(L-1)}_{a_{L-1}}}
+    \frac{\partial l_{\mu}}{\partial t^{(L-2)}_{a_{L-2}}}
     &=
     \sum_{a_{L-1}=1}^{p_{L-1}}
-    \frac{\partial h^{(L-1)}_{a_{L-1}}}{\partial t^{(L-1)}_{a_{L-1}}}
+    \frac{\partial h^{(L-1)}_{a_{L-1}}}{\partial t^{(L-2)}_{a_{L-2}}}
     \frac{\partial t^{(L-1)}_{a_{L-1}}}{\partial h^{(L-1)}_{a_{L-1}}}
     \frac{\partial l_{\mu}}{\partial t^{(L-1)}_{a_{L-1}}}
     =
@@ -943,7 +1113,7 @@ As in the simple case, the relevant terms are known from the previous layer, so 
     t^{(l-1)}_{a_{l-1}} \sigma'^{(l)} (h^{(l)}_{a_{l}})
     \frac{\partial l_{\mu}}{\partial t^{(l)}_{a_{l}}}
      \\
-    \frac{\partial l_{\mu}}{\partial t^{(l)}_{a_{l}}}
+    \frac{\partial l_{\mu}}{\partial t^{(l-1)}_{a_{l-1}}}
     &=
     \sum_{a_{l}=1}^{p_{l}}
     W^{(l)}_{a_{l}a_{l-1}}
@@ -971,9 +1141,9 @@ And we're done! If we know all the post/pre activations of the neurons for a giv
             \epsilon^{(l)}_{a_{l}}
             =
             \sigma'^{(l)} (h^{(l)}_{a_l})
-            \sum_{a_l=1}^{p_l}
-            W^{(l)}_{a_L a_{l-1}}
-            \epsilon_{a_{l-1}}
+            \sum_{a_{l+1}=1}^{p_{l+1}}
+            W^{(l+1)}_{a_{l+2} a_{l+1}}
+            \epsilon_{a_{l+1}}
         \end{equation}
         and store them in memory.
         \item \textbf{Compute Derivatives:}
@@ -996,7 +1166,9 @@ And we're done! If we know all the post/pre activations of the neurons for a giv
             \sum_{\mu \in \mathcal{B}_t}
             \delta_{a_l a_{l-1}}^{\mu}
     \end{equation}
+    \item \textbf{Resample $\mathcal{B}_t$ and repeat 1. \& 2. until stopping criterion is met}
 \end{enumerate}
+In practice, the stopping criterion can be a convergence criterion, iterating until some metric remains constant or simply a hard number of iterations.
 
 \subsection{Convolutional Neural Networks}
 When designing a NN for image analysis (where typically $X_{\mu i}$ represents the $i$-th pixel of sample $\mu$), the fully connected architecture has 2 undesirable properties:
@@ -1053,6 +1225,7 @@ To make the ideas discussed above more concrete, the architectures of two famous
 \end{figure}
 
 \subsection{Advanced Concepts and Ongoing Research}
+Talk about double descent, adverserial examples, data augmentation,\dots
 \end{document}
 
 
