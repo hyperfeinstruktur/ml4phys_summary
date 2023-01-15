@@ -22,7 +22,7 @@
 \maketitle
 \tableofcontents
 
-\noindent\textbf{TODO}: Clustering, Boltzman machine, MH algorithm details, Gibbs sampling, ME algorithm details, backpropagation, advanced concepts (last lecture)
+\noindent\textbf{TODO}: Clustering, Boltzman machine, MH algorithm details, Gibbs sampling, ME algorithm details, advanced concepts (last lecture)
 \section{Bayesian Inference, Linear Models and Supervised Learning}
 \subsection{Bayesian Probability and Nomenclature}
 The philosophy of bayesian inference is to improve the a priori information one has about a parameter $\theta$ via observations or data.
@@ -802,7 +802,7 @@ The training of a NN is performed by minimizing the loss function, like for the 
     W^{(l)}_{a b} (t+1)
     =
     W^{(l)}_{a b} (t)
-    - \gamma
+    - \gamma \frac{1}{|\mathcal{B}_t|}
     \sum_{\mu \in \mathcal{B}_t}
     \frac{\partial l(y_{\mu}, f_W(X_{\mu}))}{\partial W^{(l)}_{a b}}
 \end{equation}
@@ -825,126 +825,176 @@ To get an intuitive feeling for the algorithm, let's look at an overly simplifie
     \right),
 \end{equation}
 with $L=3$. We call the post-activation of the neuron in the $l$-th layer $t^{(l)} = \sigma^{(l)}(h^{(l)})$ and the pre-activation $h^{(l)} = w^{(l-1)} t^{(l-1)}$.
-Applying the chain rule,
+Feeding a sample $X_{\mu}$ into the network, we can start by looking at the last layer and compute, with the chain rule,
 \begin{align}
-    \frac{\partial f_W}{\partial w^{(L)}}
+    \frac{\partial l(y_{\mu}, f_W(X_{\mu}))}{\partial w^{(L)}}
     &=
     \frac{\partial h^{(L)}}{\partial w^{(L)}}
     \frac{\partial t^{(L)}}{\partial h^{(L)}}
-    \frac{\partial f_W}{\partial t^{(L)}}
+    \frac{\partial l(y_{\mu}, f_W(X_{\mu}))}{\partial t^{(L)}}
     =
-    t^{(L-1)} \sigma'^{(L)} (h^{(L)}) \\
-    \frac{\partial f_W}{\partial t^{(L-1)}}
+    t^{(L-1)} \sigma'^{(L)} (h^{(L)})
+    \frac{\partial l(y_{\mu}, f_W(X_{\mu}))}{\partial t^{(L)}}
+    \\
+    \frac{\partial l(y_{\mu}, f_W(X_{\mu}))}{\partial t^{(L-1)}}
     &=
     \frac{\partial h^{(L)}}{\partial t^{(L-1)}}
     \frac{\partial t^{(L)}}{\partial h^{(L)}}
-    \frac{\partial f_W}{\partial t^{(L)}}
+    \frac{\partial l(y_{\mu}, f_W(X_{\mu}))}{\partial t^{(L)}}
     =
-    w^{(L)} \sigma'^{(L)} (h^{(L)}).
+    w^{(L)} \sigma'^{(L)} (h^{(L)})
+    \frac{\partial l(y_{\mu}, f_W(X_{\mu}))}{\partial t^{(L)}}.
 \end{align}
-Since $\partial f_W / \partial t^{(L)} = 1$. But now,
+$\partial l(y_{\mu}, f_W(X_{\mu})) / \partial t^{(L)}$ will depend on the choice of loss and is thus known. This means that both these derivatives can be computed directly and provide the starting point of the recursive algorithm. Going to the next layer and writing simply $l(y_{\mu}, f_W(X_{\mu})) \equiv l_{\mu}$,
 \begin{align}
-    \frac{\partial f_W}{\partial w^{(L-1)}}
+    \frac{\partial l_{\mu}}{\partial w^{(L-1)}}
     &=
     \frac{\partial h^{(L-1)}}{\partial w^{(L-1)}}
     \frac{\partial t^{(L-1)}}{\partial h^{(L-1)}}
-    \frac{\partial f_W}{\partial t^{(L-1)}}
+    \frac{\partial l_{\mu}}{\partial t^{(L-1)}}
     =
     t^{(L-2)}\sigma'^{(L-1)}(h^{(L-1)})
-    \frac{\partial f_W}{\partial t^{(L-1)}} \\
-    \frac{\partial f_W}{\partial t^{(L-2)}}
+    \frac{\partial l_{\mu}}{\partial t^{(L-1)}} \\
+    \frac{\partial l_{\mu}}{\partial t^{(L-2)}}
     &=
     \frac{\partial h^{(L-1)}}{\partial t^{(L-2)}}
     \frac{\partial t^{(L-1)}}{\partial h^{(L-1)}}
-    \frac{\partial f_W}{\partial t^{(L-1)}}
+    \frac{\partial l_{\mu}}{\partial t^{(L-1)}}
     =
     w^{(L-1)}\sigma'^{(L-1)}(h^{(L-1)})
-    \frac{\partial f_W}{\partial t^{(L-1)}},
+    \frac{\partial l_{\mu}}{\partial t^{(L-1)}},
 \end{align}
-where the last quantity in both equations is already known! Applying this idea repeatedly, starting from the \emph{back} of the network and moving to the \emph{front}, all derivatives can be computed by the same recursive formula. Finally since,
-\begin{equation}
-    \frac{\partial l(y_{\mu}, f_W(X_{\mu}))}{\partial w^{(l)}}
-    =
-    \frac{\partial l(y_{\mu}, f_W(X_{\mu}))}{\partial f_W}
-    \frac{\partial f_W}{\partial w^{(l)}}
-    \quad \quad \left((y_{\mu,X_{\mu}}) \text{ fixed}\right),
-\end{equation}
-the recursive strategy of above immediately yields the derivatives required by the GD algorithm ($\partial l / \partial f_W$ is analytical, e.g. $=2(y_{\mu} - f_W(X_{\mu}))$ for the square loss).
-
-This can be generalized straightforwardly to more complex networks: the only thing that changes is that now, the activation of a neuron has an impact on \emph{all} the neurons in the following layer, and so on, meaning that these contributions have to be added up. Formally, going back to the index notation,
+where the last quantity in both equations is already known from the previous step! Applying this idea repeatedly, starting from the \emph{back} of the network and moving to the \emph{front}, all derivatives can be computed by the same recursive formula:
 \begin{align}
-    \frac{\partial f_W}{\partial w^{(L)}_{a_L a_{L-1}}}
+    \frac{\partial l_{\mu}}{\partial w^{(l)}}
     &=
-    \frac{\partial h^{(L)}_{a_L}}{\partial w^{(L)}_{a_L a_{L-1}}}
+%    \frac{\partial h^{(l)}}{\partial w^{(l)}}
+%    \frac{\partial t^{(l)}}{\partial h^{(l)}}
+%    \frac{\partial l_{\mu}}{\partial t^{(l)}}
+%    =
+    t^{(l-1)}\sigma'^{(l)}(h^{(l)})
+    \frac{\partial l_{\mu}}{\partial t^{(l)}} \\
+    \frac{\partial l_{\mu}}{\partial t^{(l-1)}}
+    &=
+%    \frac{\partial h^{(l)}}{\partial t^{(l-1)}}
+%    \frac{\partial t^{(l)}}{\partial h^{(l)}}
+%    \frac{\partial l_{\mu}}{\partial t^{(l)}}
+%    =
+    w^{(l)}\sigma'^{(l)}(h^{(l)})
+    \frac{\partial l_{\mu}}{\partial t^{(l)}}.
+\end{align}
+
+\subsubsection*{General Case}
+This can be generalized straightforwardly to more complex networks: the only thing that changes is that now, the activation of a neuron has an impact on \emph{all} the neurons in the following layer, and so on, meaning that these contributions have to be added up. Formally, going back to the index notation, and recalling for readability the definitions of the pre/post activations:
+\begin{align}
+    h^{(l)}_{b_{l}} &=
+    \sum_{b_{l-1}=1}^{p_{l-1}} W^{(l)}_{b_{l}b_{l-1}} t^{(l-1)}_{b_{l-1}} \\
+    t^{(l)}_{b_{l}} &=
+    \sigma^{(l)}(h^{(l)}_{b_{l}})
+\end{align}
+where we wrote the indices of the neurons as $b_l$ to distinguish them from the differentials in what follows. We start as before from the last layer,
+\begin{align}
+    \frac{\partial l_{\mu}}{\partial W^{(L)}_{a_L a_{L-1}}}
+    &=
+    \frac{\partial h^{(L)}_{a_L}}{\partial W^{(L)}_{a_L a_{L-1}}}
     \frac{\partial t^{(L)}_{a_L}}{\partial h^{(L)}_{a_L}}
-    \frac{\partial f_W}{\partial t^{(L)}_{a_L}}
+    \frac{\partial l_{\mu}}{\partial t^{(L)}_{a_L}}
     = t^{(L-1)}_{a_{L-1}} \sigma'^{(L)} (h^{(L)}_{a_L})
+    \frac{\partial l_{\mu}}{\partial t^{(L)}_{a_L}}
      \\
-    \frac{\partial f_W}{\partial t^{(L-1)}_{a_{L-1}}}
+    \frac{\partial l_{\mu}}{\partial t^{(L-1)}_{a_{L-1}}}
     &=
     \sum_{a_L=1}^{p_L}
     \frac{\partial h^{(L)}_{a_L}}{\partial t^{(L-1)}_{a_{L-1}}}
     \frac{\partial t^{(L)}_{a_L}}{\partial h^{(L)}_{a_L}}
-    \frac{\partial f_W}{\partial t^{(L)}_{a_L}}
+    \frac{\partial l_{\mu}}{\partial t^{(L)}_{a_L}}
     =
     \sum_{a_L=1}^{p_L}
     W^{(L)}_{a_{L}a_{L-1}}
     \sigma'^{(L)} (h^{(L)}_{a_L})
+    \frac{\partial l_{\mu}}{\partial t^{(L)}_{a_L}}
 \end{align}
-Note that if in the last layer there are $a_L$ neurons, then $f_W = (t^{(L)}_{a_1},\dots,t^{(L)}_{a_L}) \in \mathbb{R}^{a_L}$ and so $\partial f_W / \partial t^{(L)}_{a_L} = \vec{e}_{a_L}$. For the next layer,
+Again, the derivative $\partial l_{\mu} / t^{(L)}_{a_L}$ follows from the functional form of the loss, as $f_W$ is built from the $t^{(L)}_{a_L}$. For the next layer,
 \begin{align}
-    \frac{\partial f_W}{\partial w^{(L-1)}_{a_{L-1} a_{L-2}}}
+    \frac{\partial l_{\mu}}{\partial W^{(L-1)}_{a_{L-1} a_{L-2}}}
     &=
-    \frac{\partial h^{(L-1)}_{a_{L-1}}}{\partial w^{(L-1)}_{a_{L-1} a_{L-2}}}
+    \frac{\partial h^{(L-1)}_{a_{L-1}}}{\partial W^{(L-1)}_{a_{L-1} a_{L-2}}}
     \frac{\partial t^{(L-1)}_{a_{L-1}}}{\partial h^{(L-1)}_{a_{L-1}}}
-    \frac{\partial f_W}{\partial t^{(L-1)}_{a_{L-1}}}
+    \frac{\partial l_{\mu}}{\partial t^{(L-1)}_{a_{L-1}}}
     = t^{(L-2)}_{a_{L-2}} \sigma'^{(L-1)} (h^{(L-1)}_{a_{L-1}})
-    \frac{\partial f_W}{\partial t^{(L-1)}_{a_{L-1}}}
+    \frac{\partial l_{\mu}}{\partial t^{(L-1)}_{a_{L-1}}}
      \\
-    \frac{\partial f_W}{\partial t^{(L-1)}_{a_{L-1}}}
+    \frac{\partial l_{\mu}}{\partial t^{(L-1)}_{a_{L-1}}}
     &=
     \sum_{a_{L-1}=1}^{p_{L-1}}
     \frac{\partial h^{(L-1)}_{a_{L-1}}}{\partial t^{(L-1)}_{a_{L-1}}}
     \frac{\partial t^{(L-1)}_{a_{L-1}}}{\partial h^{(L-1)}_{a_{L-1}}}
-    \frac{\partial f_W}{\partial t^{(L-1)}_{a_{L-1}}}
+    \frac{\partial l_{\mu}}{\partial t^{(L-1)}_{a_{L-1}}}
     =
     \sum_{a_{L-1}=1}^{p_{L-1}}
     W^{(L-1)}_{a_{L-1}a_{L-2}}
     \sigma'^{(L-1)} (h^{(L-1)}_{a_{L-1}})
-    \frac{\partial f_W}{\partial t^{(L-1)}_{a_{L-1}}}
+    \frac{\partial l_{\mu}}{\partial t^{(L-1)}_{a_{L-1}}}
 \end{align}
-And again, the last term in each equation is known from the previous layer, so we're done! If we know all the post/pre activations of the neurons for a given sample and the functional form of the derivative of the activation functions, we can compute all the derivatives demanded by the GD process. More algorithmically:
+As in the simple case, the relevant terms are known from the previous layer, so the following recursion can be used on all layers:
+\begin{align}
+    \frac{\partial l_{\mu}}{\partial W^{(l)}_{a_{l} a_{l-1}}}
+    &=
+    t^{(l-1)}_{a_{l-1}} \sigma'^{(l)} (h^{(l)}_{a_{l}})
+    \frac{\partial l_{\mu}}{\partial t^{(l)}_{a_{l}}}
+     \\
+    \frac{\partial l_{\mu}}{\partial t^{(l)}_{a_{l}}}
+    &=
+    \sum_{a_{l}=1}^{p_{l}}
+    W^{(l)}_{a_{l}a_{l-1}}
+    \sigma'^{(l)} (h^{(l)}_{a_{l}})
+    \frac{\partial l_{\mu}}{\partial t^{(l)}_{a_{l}}}
+\end{align}
+And we're done! If we know all the post/pre activations of the neurons for a given sample and the functional form of the derivative of the activation functions, we can compute all the derivatives demanded by the GD process. More algorithmically:
 
-
+\subsubsection*{Backpropagation Algorithm}
 \begin{enumerate}
     \item \textbf{For every $X_{\mu}$ in $\mathcal{B}_t$, do:}
     \begin{enumerate}
         \item \textbf{"Forward Pass":}
         Feed $X_{\mu}$ into the network. Along the way (in the forward direction of the signal), layer by layer, store the pre and post activations $h^{(l)}_{a_l}$ and $t^{(l)}_{a_l}$ of the neurons in memory.
         \item \textbf{"Backward Pass":}
-        Starting from the last layer $L$ and going backwards, compute the terms
+        For the last layer of the network, compute
         \begin{equation}
-            \epsilon_{a_{l} a_{l-1}}
+            \epsilon^{(L)}_{a_{L}}
+            =
+            \sigma'^{(L)} (h^{(L)}_{a_l})
+            \frac{\partial l(y_{\mu}, f_W(X_{\mu}))}{\partial t^{(L)}_{a_L}}
+        \end{equation}
+        Then, moving backwards through the net, recursively compute the quantities
+        \begin{equation}
+            \epsilon^{(l)}_{a_{l}}
             =
             \sigma'^{(l)} (h^{(l)}_{a_l})
             \sum_{a_l=1}^{p_l}
-            w^{(L)}_{a_L a_{L-1}}
-            \epsilon_{a_{l-1} a_{l-2}}
+            W^{(l)}_{a_L a_{l-1}}
+            \epsilon_{a_{l-1}}
         \end{equation}
-        recursively, by storing them in memory at each layer.
+        and store them in memory.
         \item \textbf{Compute Derivatives:}
-        Compute the relevant derivatives, given by
+        Use the data stored in memory to compute the derivatives,
         \begin{equation}
-            \frac{\partial l(y_{\mu}, f_W(X_{\mu}))}{\partial W^{(l)}_{a b}}
+            \frac{\partial l(y_{\mu}, f_W(X_{\mu}))}{\partial W^{(l)}_{a_l a_{l-1}}}
             =
+            t^{(l-1)}_{a_{l-1}}
+            \epsilon^{(l)}_{a_{l}}
+            \equiv
+            \delta_{a_l a_{l-1}}^{\mu}
         \end{equation}
     \end{enumerate}
-    \item \textbf{Update the weights by the GD method:}
+    \item \textbf{Update the weights:}
     \begin{equation}
-        W^{(l)}_{a b} (t+1)
+        W^{(l)}_{a_l a_{l-1}} (t+1)
             =
-            W^{(l)}_{a b} (t)
-            - \gamma \sum_{\mu \in \mathcal{B}_t}
+            W^{(l)}_{a_l a_{l-1}} (t)
+            - \gamma \frac{1}{|\mathcal{B}_t|}
+            \sum_{\mu \in \mathcal{B}_t}
+            \delta_{a_l a_{l-1}}^{\mu}
     \end{equation}
 \end{enumerate}
 
